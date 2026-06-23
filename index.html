@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Happy Anniversary 💕</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { overflow: hidden; touch-action: none; overscroll-behavior: none; }
+      body { background: #87ceeb; font-family: 'Georgia', serif; }
+      canvas { display: block; touch-action: none; }
+
+      /* ── Loading Screen ── */
+      #loading-screen {
+        position: fixed; inset: 0;
+        background: linear-gradient(160deg, #4fc3f7 0%, #81d4fa 40%, #ffe0b2 100%);
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        z-index: 100; transition: opacity 1s ease;
+      }
+      #loading-screen.fade-out { opacity: 0; pointer-events: none; }
+      #loading-title {
+        color: #6d3b1e; font-size: clamp(1.8rem, 5vw, 3rem);
+        letter-spacing: 0.15em; text-align: center;
+        text-shadow: 0 2px 12px rgba(255,200,100,0.5);
+        margin-bottom: 1.5rem; animation: pulse 2s ease-in-out infinite;
+      }
+      #loading-subtitle {
+        color: #5d4037; font-size: clamp(0.9rem, 2.5vw, 1.2rem);
+        letter-spacing: 0.08em; text-align: center; margin-bottom: 3rem;
+        opacity: 0.8;
+      }
+      #loading-bar-wrap {
+        width: min(320px, 80vw); height: 4px;
+        background: rgba(255,255,255,0.15); border-radius: 2px; overflow: hidden;
+      }
+      #loading-bar {
+        height: 100%; width: 0%;
+        background: linear-gradient(90deg, #f06292, #ff9800);
+        border-radius: 2px; transition: width 0.3s ease;
+        box-shadow: 0 0 10px #ff69b4;
+      }
+      #loading-hint {
+        color: #c896b0; font-size: 0.75rem; margin-top: 1rem;
+        letter-spacing: 0.05em; opacity: 0.7;
+      }
+
+      /* ── Start Screen ── */
+      #start-screen {
+        position: fixed; inset: 0;
+        background: rgba(200, 235, 255, 0.88);
+        display: none; flex-direction: column;
+        align-items: center; justify-content: center;
+        z-index: 90; backdrop-filter: blur(4px);
+      }
+      #start-screen.visible { display: flex; }
+      #start-title {
+        color: #6d3b1e; font-size: clamp(2rem, 6vw, 3.5rem);
+        letter-spacing: 0.12em; text-align: center;
+        text-shadow: 0 2px 12px rgba(255,180,80,0.4); margin-bottom: 0.5rem;
+      }
+      #start-date {
+        color: #5d4037; font-size: clamp(1rem, 3vw, 1.4rem);
+        letter-spacing: 0.2em; margin-bottom: 3rem; opacity: 0.85;
+      }
+      #start-btn {
+        padding: 1rem 3rem; font-size: 1rem; font-family: 'Georgia', serif;
+        letter-spacing: 0.15em; color: #fff;
+        background: linear-gradient(135deg, #f06292, #e91e8c);
+        border: none; border-radius: 40px; cursor: pointer;
+        box-shadow: 0 4px 20px rgba(240,98,146,0.4);
+        transition: all 0.3s ease;
+      }
+      #start-btn:hover {
+        background: linear-gradient(135deg, #e91e8c, #c2185b);
+        box-shadow: 0 6px 30px rgba(240,98,146,0.6); transform: scale(1.05);
+      }
+      #start-controls {
+        color: #795548; font-size: 0.78rem; margin-top: 2rem;
+        letter-spacing: 0.06em; text-align: center; line-height: 1.8;
+      }
+
+      /* ── HUD ── */
+      #hud {
+        position: fixed; top: 0; left: 0; right: 0;
+        padding: 1.2rem 2rem;
+        display: none; justify-content: space-between; align-items: flex-start;
+        z-index: 50; pointer-events: none;
+      }
+      #hud.visible { display: flex; }
+      #hud-title { color: rgba(100,60,20,0.8); font-size: 0.9rem; letter-spacing: 0.1em; }
+      #hud-controls { color: rgba(100,60,20,0.6); font-size: 0.7rem; letter-spacing: 0.05em; text-align: right; line-height: 1.7; }
+
+      /* ── Memory Popup ── */
+      #memory-popup {
+        position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+        max-width: min(480px, 90vw); width: 100%;
+        background: rgba(255, 252, 240, 0.94); border: 1px solid rgba(240,98,146,0.35);
+        border-radius: 16px; padding: 1.8rem 2rem;
+        color: #f0d0e0; text-align: center;
+        z-index: 60; backdrop-filter: blur(12px);
+        opacity: 0; transition: opacity 0.5s ease, transform 0.5s ease;
+        transform: translateX(-50%) translateY(20px);
+        pointer-events: none; box-shadow: 0 0 40px rgba(255,105,180,0.2);
+      }
+      #memory-popup.visible {
+        opacity: 1; transform: translateX(-50%) translateY(0);
+      }
+      #memory-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+      #memory-title { color: #c2185b; font-size: 1.1rem; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
+      #memory-text { color: #5d3a1a; font-size: 0.9rem; line-height: 1.6; opacity: 0.9; }
+
+      /* ── Final Message ── */
+      #final-screen {
+        position: fixed; inset: 0;
+        background: rgba(255, 248, 235, 0.97);
+        display: none; flex-direction: column;
+        align-items: center; justify-content: center;
+        z-index: 80; backdrop-filter: blur(8px);
+        padding: 2rem; text-align: center;
+      }
+      #final-screen.visible { display: flex; }
+      #final-heart { font-size: 4rem; margin-bottom: 1rem; animation: heartbeat 1s ease-in-out infinite; }
+      #final-message {
+        color: #6d3b1e; font-size: clamp(1.4rem, 4vw, 2.2rem);
+        letter-spacing: 0.08em; line-height: 1.5; margin-bottom: 1rem;
+        text-shadow: 0 2px 10px rgba(255,180,80,0.3);
+      }
+      #final-sub {
+        color: #5d4037; font-size: clamp(0.9rem, 2vw, 1.1rem);
+        opacity: 0.85; line-height: 1.7; max-width: 500px;
+      }
+      #final-close {
+        margin-top: 2.5rem; padding: 0.8rem 2.5rem; font-size: 0.9rem;
+        font-family: 'Georgia', serif; letter-spacing: 0.1em; color: #fff;
+        background: linear-gradient(135deg, #f06292, #e91e8c);
+        border: none; border-radius: 40px; cursor: pointer;
+        box-shadow: 0 4px 20px rgba(240,98,146,0.4); transition: all 0.3s;
+      }
+      #final-close:hover { transform: scale(1.05); box-shadow: 0 6px 30px rgba(240,98,146,0.6); }
+
+      /* ── Crosshair ── */
+      #crosshair {
+        position: fixed; top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 8px; height: 8px; border-radius: 50%;
+        background: rgba(255,182,193,0.7);
+        box-shadow: 0 0 6px rgba(255,105,180,0.8);
+        z-index: 55; display: none; pointer-events: none;
+      }
+      #crosshair.visible { display: block; }
+
+      /* ── Virtual Joystick ── */
+      #joystick-base {
+        position: fixed; display: none;
+        width: 104px; height: 104px; border-radius: 50%;
+        background: rgba(255,255,255,0.18);
+        border: 2px solid rgba(255,255,255,0.55);
+        transform: translate(-50%, -50%);
+        z-index: 70; pointer-events: none;
+        backdrop-filter: blur(2px);
+      }
+      #joystick-knob {
+        position: absolute; top: 50%; left: 50%;
+        width: 46px; height: 46px; border-radius: 50%;
+        background: rgba(255,255,255,0.65);
+        border: 2px solid rgba(240,98,146,0.6);
+        transform: translate(-50%, -50%);
+        box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+      }
+
+      /* ── Mobile touch hint (shows on right side before game starts) ── */
+      #joystick-hint {
+        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+        color: rgba(80,40,10,0.65); font-size: 0.72rem; letter-spacing: 0.06em;
+        text-align: center; pointer-events: none; z-index: 55; line-height: 1.7;
+        display: none;
+      }
+
+      /* ── Mobile: larger tap targets & layout tweaks ── */
+      @media (max-width: 768px) {
+        #start-btn { padding: 1.1rem 2.5rem; font-size: 1.05rem; min-height: 52px; }
+        #start-title { font-size: clamp(1.6rem, 8vw, 2.6rem); }
+        #start-date  { font-size: clamp(0.85rem, 4vw, 1.1rem); letter-spacing: 0.1em; }
+        #start-controls { font-size: 0.82rem; line-height: 2; }
+        #memory-popup { bottom: 1rem; padding: 1.2rem 1.4rem; }
+        #memory-title { font-size: 1rem; }
+        #memory-text  { font-size: 0.85rem; }
+        #hud { padding: 0.8rem 1rem; }
+        #hud-title { font-size: 0.8rem; }
+        #hud-controls { font-size: 0.62rem; }
+        #joystick-hint { display: block; }
+        #final-message { font-size: clamp(1.2rem, 6vw, 2rem); }
+        #final-sub     { font-size: clamp(0.85rem, 3.5vw, 1rem); }
+        #final-close   { padding: 0.9rem 2rem; min-height: 52px; }
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; } 50% { opacity: 0.6; }
+      }
+      @keyframes heartbeat {
+        0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); }
+      }
+    </style>
+    <script type="module" crossorigin src="/anniv/assets/index-D3Wg6fo9.js"></script>
+  </head>
+  <body>
+
+    <!-- Loading -->
+    <div id="loading-screen">
+      <div id="loading-title">Loading Our World...</div>
+      <div id="loading-subtitle">A special place just for you 🌸</div>
+      <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
+      <div id="loading-hint">Please wait a moment</div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="start-screen">
+      <div id="start-title">Happy Anniversary</div>
+      <div id="start-date">July 5 · A World Made for You</div>
+      <button id="start-btn">Enter Our World</button>
+      <div id="start-controls" id="start-controls-desktop">
+        WASD · Move &nbsp;|&nbsp; Mouse · Camera &nbsp;|&nbsp; Shift · Run<br>
+        Walk near the glowing spots to discover memories 🐾
+      </div>
+      <div id="start-controls-mobile" style="display:none; color:#795548; font-size:0.82rem; margin-top:1.5rem; text-align:center; line-height:2; letter-spacing:0.05em;">
+        Left side · Move &nbsp;|&nbsp; Right side · Look around<br>
+        Push joystick fully to run &nbsp;|&nbsp; 🐾 Follow the glowing spots
+      </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud">
+      <div id="hud-title">Our World 🌸</div>
+      <div id="hud-controls">WASD · Move<br>Mouse · Camera<br>Shift · Run</div>
+    </div>
+
+    <!-- Virtual Joystick (mobile) -->
+    <div id="joystick-base"><div id="joystick-knob"></div></div>
+
+    <!-- Mobile swipe hint (bottom, shown before game starts on mobile) -->
+    <div id="joystick-hint">
+      Left side · Move &nbsp;|&nbsp; Right side · Look around
+    </div>
+
+    <!-- Memory Popup -->
+    <div id="memory-popup">
+      <div id="memory-icon">💕</div>
+      <div id="memory-title">Memory Title</div>
+      <div id="memory-text">Memory description goes here.</div>
+    </div>
+
+    <!-- Final Anniversary Screen -->
+    <div id="final-screen">
+      <div id="final-heart">💖</div>
+      <div id="final-message">Happy Anniversary, My Love</div>
+      <div id="final-sub">
+        Thank you for every moment, every laugh, every memory.<br>
+        Here's to forever with you.
+      </div>
+      <button id="final-close">Continue Exploring</button>
+    </div>
+
+    <script>
+      // Detect mobile and swap UI hints before the module loads
+      if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        document.getElementById('start-controls-desktop').style.display = 'none'
+        document.getElementById('start-controls-mobile').style.display  = 'block'
+        document.getElementById('joystick-hint').style.display = 'block'
+        // Make memory popup dismissible on tap
+        document.addEventListener('DOMContentLoaded', () => {
+          document.getElementById('memory-popup').addEventListener('click', () => {
+            document.getElementById('memory-popup').classList.remove('visible')
+          })
+        })
+      }
+    </script>
+  </body>
+</html>

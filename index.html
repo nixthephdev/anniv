@@ -6,26 +6,26 @@
     <title>Happy Anniversary 💕</title>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { overflow: hidden; background: #0a0010; font-family: 'Georgia', serif; }
+      body { overflow: hidden; background: #87ceeb; font-family: 'Georgia', serif; }
       canvas { display: block; }
 
       /* ── Loading Screen ── */
       #loading-screen {
         position: fixed; inset: 0;
-        background: linear-gradient(135deg, #1a0030 0%, #3d0050 50%, #1a0030 100%);
+        background: linear-gradient(160deg, #4fc3f7 0%, #81d4fa 40%, #ffe0b2 100%);
         display: flex; flex-direction: column;
         align-items: center; justify-content: center;
         z-index: 100; transition: opacity 1s ease;
       }
       #loading-screen.fade-out { opacity: 0; pointer-events: none; }
       #loading-title {
-        color: #ffb3cc; font-size: clamp(1.8rem, 5vw, 3rem);
+        color: #6d3b1e; font-size: clamp(1.8rem, 5vw, 3rem);
         letter-spacing: 0.15em; text-align: center;
-        text-shadow: 0 0 30px #ff69b4, 0 0 60px #ff1493;
+        text-shadow: 0 2px 12px rgba(255,200,100,0.5);
         margin-bottom: 1.5rem; animation: pulse 2s ease-in-out infinite;
       }
       #loading-subtitle {
-        color: #e8b4d0; font-size: clamp(0.9rem, 2.5vw, 1.2rem);
+        color: #5d4037; font-size: clamp(0.9rem, 2.5vw, 1.2rem);
         letter-spacing: 0.08em; text-align: center; margin-bottom: 3rem;
         opacity: 0.8;
       }
@@ -35,7 +35,7 @@
       }
       #loading-bar {
         height: 100%; width: 0%;
-        background: linear-gradient(90deg, #ff69b4, #ff1493);
+        background: linear-gradient(90deg, #f06292, #ff9800);
         border-radius: 2px; transition: width 0.3s ease;
         box-shadow: 0 0 10px #ff69b4;
       }
@@ -47,35 +47,35 @@
       /* ── Start Screen ── */
       #start-screen {
         position: fixed; inset: 0;
-        background: rgba(10, 0, 20, 0.85);
+        background: rgba(200, 235, 255, 0.88);
         display: none; flex-direction: column;
         align-items: center; justify-content: center;
         z-index: 90; backdrop-filter: blur(4px);
       }
       #start-screen.visible { display: flex; }
       #start-title {
-        color: #ffb3cc; font-size: clamp(2rem, 6vw, 3.5rem);
+        color: #6d3b1e; font-size: clamp(2rem, 6vw, 3.5rem);
         letter-spacing: 0.12em; text-align: center;
-        text-shadow: 0 0 40px #ff69b4; margin-bottom: 0.5rem;
+        text-shadow: 0 2px 12px rgba(255,180,80,0.4); margin-bottom: 0.5rem;
       }
       #start-date {
-        color: #e8b4d0; font-size: clamp(1rem, 3vw, 1.4rem);
+        color: #5d4037; font-size: clamp(1rem, 3vw, 1.4rem);
         letter-spacing: 0.2em; margin-bottom: 3rem; opacity: 0.85;
       }
       #start-btn {
         padding: 1rem 3rem; font-size: 1rem; font-family: 'Georgia', serif;
         letter-spacing: 0.15em; color: #fff;
-        background: linear-gradient(135deg, #c2185b, #880e4f);
-        border: 1px solid #ff69b4; border-radius: 40px; cursor: pointer;
-        box-shadow: 0 0 20px rgba(255,105,180,0.4);
+        background: linear-gradient(135deg, #f06292, #e91e8c);
+        border: none; border-radius: 40px; cursor: pointer;
+        box-shadow: 0 4px 20px rgba(240,98,146,0.4);
         transition: all 0.3s ease;
       }
       #start-btn:hover {
-        background: linear-gradient(135deg, #e91e8c, #ad1457);
-        box-shadow: 0 0 35px rgba(255,105,180,0.7); transform: scale(1.05);
+        background: linear-gradient(135deg, #e91e8c, #c2185b);
+        box-shadow: 0 6px 30px rgba(240,98,146,0.6); transform: scale(1.05);
       }
       #start-controls {
-        color: #a07090; font-size: 0.78rem; margin-top: 2rem;
+        color: #795548; font-size: 0.78rem; margin-top: 2rem;
         letter-spacing: 0.06em; text-align: center; line-height: 1.8;
       }
 
@@ -87,14 +87,14 @@
         z-index: 50; pointer-events: none;
       }
       #hud.visible { display: flex; }
-      #hud-title { color: rgba(255,180,210,0.7); font-size: 0.9rem; letter-spacing: 0.1em; }
-      #hud-controls { color: rgba(255,180,210,0.5); font-size: 0.7rem; letter-spacing: 0.05em; text-align: right; line-height: 1.7; }
+      #hud-title { color: rgba(100,60,20,0.8); font-size: 0.9rem; letter-spacing: 0.1em; }
+      #hud-controls { color: rgba(100,60,20,0.6); font-size: 0.7rem; letter-spacing: 0.05em; text-align: right; line-height: 1.7; }
 
       /* ── Memory Popup ── */
       #memory-popup {
         position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
         max-width: min(480px, 90vw); width: 100%;
-        background: rgba(20, 0, 35, 0.92); border: 1px solid rgba(255,105,180,0.4);
+        background: rgba(255, 252, 240, 0.94); border: 1px solid rgba(240,98,146,0.35);
         border-radius: 16px; padding: 1.8rem 2rem;
         color: #f0d0e0; text-align: center;
         z-index: 60; backdrop-filter: blur(12px);
@@ -106,13 +106,13 @@
         opacity: 1; transform: translateX(-50%) translateY(0);
       }
       #memory-icon { font-size: 2rem; margin-bottom: 0.5rem; }
-      #memory-title { color: #ffb3cc; font-size: 1.1rem; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
-      #memory-text { font-size: 0.9rem; line-height: 1.6; opacity: 0.85; }
+      #memory-title { color: #c2185b; font-size: 1.1rem; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
+      #memory-text { color: #5d3a1a; font-size: 0.9rem; line-height: 1.6; opacity: 0.9; }
 
       /* ── Final Message ── */
       #final-screen {
         position: fixed; inset: 0;
-        background: rgba(10, 0, 20, 0.95);
+        background: rgba(255, 248, 235, 0.97);
         display: none; flex-direction: column;
         align-items: center; justify-content: center;
         z-index: 80; backdrop-filter: blur(8px);
@@ -121,22 +121,22 @@
       #final-screen.visible { display: flex; }
       #final-heart { font-size: 4rem; margin-bottom: 1rem; animation: heartbeat 1s ease-in-out infinite; }
       #final-message {
-        color: #ffb3cc; font-size: clamp(1.4rem, 4vw, 2.2rem);
+        color: #6d3b1e; font-size: clamp(1.4rem, 4vw, 2.2rem);
         letter-spacing: 0.08em; line-height: 1.5; margin-bottom: 1rem;
-        text-shadow: 0 0 30px #ff69b4;
+        text-shadow: 0 2px 10px rgba(255,180,80,0.3);
       }
       #final-sub {
-        color: #e8b4d0; font-size: clamp(0.9rem, 2vw, 1.1rem);
-        opacity: 0.8; line-height: 1.7; max-width: 500px;
+        color: #5d4037; font-size: clamp(0.9rem, 2vw, 1.1rem);
+        opacity: 0.85; line-height: 1.7; max-width: 500px;
       }
       #final-close {
         margin-top: 2.5rem; padding: 0.8rem 2.5rem; font-size: 0.9rem;
         font-family: 'Georgia', serif; letter-spacing: 0.1em; color: #fff;
-        background: linear-gradient(135deg, #c2185b, #880e4f);
-        border: 1px solid #ff69b4; border-radius: 40px; cursor: pointer;
-        box-shadow: 0 0 20px rgba(255,105,180,0.4); transition: all 0.3s;
+        background: linear-gradient(135deg, #f06292, #e91e8c);
+        border: none; border-radius: 40px; cursor: pointer;
+        box-shadow: 0 4px 20px rgba(240,98,146,0.4); transition: all 0.3s;
       }
-      #final-close:hover { transform: scale(1.05); box-shadow: 0 0 35px rgba(255,105,180,0.7); }
+      #final-close:hover { transform: scale(1.05); box-shadow: 0 6px 30px rgba(240,98,146,0.6); }
 
       /* ── Crosshair ── */
       #crosshair {
@@ -173,15 +173,15 @@
       <div id="start-date">July 5 · A World Made for You</div>
       <button id="start-btn">Enter Our World</button>
       <div id="start-controls">
-        WASD · Move &nbsp;|&nbsp; Mouse · Look around<br>
-        Walk near the glowing spots to discover memories
+        WASD · Move &nbsp;|&nbsp; Mouse · Orbit camera &nbsp;|&nbsp; Shift · Run<br>
+        Walk near the glowing spots to discover memories 🐾
       </div>
     </div>
 
     <!-- HUD -->
     <div id="hud">
       <div id="hud-title">Our World 🌸</div>
-      <div id="hud-controls">WASD · Move<br>Mouse · Look</div>
+      <div id="hud-controls">WASD · Move<br>Mouse · Camera<br>Shift · Run</div>
     </div>
 
     <!-- Crosshair -->

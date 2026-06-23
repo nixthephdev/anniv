@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { Terrain }      from './Terrain.js'
 import { Sky }          from './Sky.js'
-import { Player }       from './Player.js'
+import { Player, isMobile } from './Player.js'
 import { Dog }          from './Dog.js'
 import { MemorySpots }  from './MemorySpots.js'
 import { PhotoFrames }  from './PhotoFrames.js'
@@ -19,8 +19,13 @@ export class World {
   }
 
   _setupRenderer() {
-    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true })
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    this.renderer = new THREE.WebGLRenderer({
+      canvas: this.canvas,
+      antialias: !isMobile,   // antialias costs on mobile
+    })
+    this.renderer.setPixelRatio(isMobile
+      ? Math.min(window.devicePixelRatio, 1.5)
+      : Math.min(window.devicePixelRatio, 2))
     this.renderer.setSize(window.innerWidth, window.innerHeight)
     this.renderer.shadowMap.enabled = true
     this.renderer.shadowMap.type    = THREE.PCFSoftShadowMap
@@ -49,7 +54,7 @@ export class World {
     const sun = new THREE.DirectionalLight(0xfff8e1, 2.2)
     sun.position.set(80, 120, -160)
     sun.castShadow = true
-    sun.shadow.mapSize.set(2048, 2048)
+    sun.shadow.mapSize.set(isMobile ? 512 : 2048, isMobile ? 512 : 2048)
     sun.shadow.camera.near   = 0.5
     sun.shadow.camera.far    = 250
     sun.shadow.camera.left   = -100

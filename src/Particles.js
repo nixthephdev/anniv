@@ -1,7 +1,8 @@
 import * as THREE from 'three'
 
-const HEART_COUNT = 120
-const PETAL_COUNT = 180
+const mobile = ('ontouchstart' in window) || navigator.maxTouchPoints > 0
+const HEART_COUNT = mobile ? 50  : 120
+const PETAL_COUNT = mobile ? 70  : 180
 
 export class Particles {
   constructor(scene) {
@@ -63,7 +64,7 @@ export class Particles {
   }
 
   _buildGlitter() {
-    const count = 300
+    const count = mobile ? 80 : 300
     const positions = new Float32Array(count * 3)
     const rng = mulberry32(33)
 

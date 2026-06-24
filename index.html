@@ -424,7 +424,8 @@
       }
       .chat-bubble.right {
         align-self: flex-end;
-        background: #34c759; color: #fff;
+        background: linear-gradient(135deg, #f06292, #e91e8c);
+        color: #fff;
         border-bottom-right-radius: 5px;
         transform: translateX(18px);
       }
@@ -458,6 +459,62 @@
       #choice-ignore { background: #2c2c2e; color: #8e8e93; border: 1px solid #3d3d3f; }
       #choice-reply  { background: linear-gradient(135deg, #0a84ff, #006be6); color: #fff; box-shadow: 0 4px 18px rgba(10,132,255,0.4); }
 
+      /* ── Shake (Ignore tap) ── */
+      #phone-overlay.shake {
+        animation: phone-shake 0.5s cubic-bezier(.36,.07,.19,.97);
+      }
+      @keyframes phone-shake {
+        0%,100% { transform: translateX(0) rotate(0); }
+        10% { transform: translateX(-10px) rotate(-1.5deg); }
+        25% { transform: translateX(12px)  rotate(1.5deg); }
+        40% { transform: translateX(-14px) rotate(-1deg); }
+        55% { transform: translateX(14px)  rotate(1deg); }
+        70% { transform: translateX(-8px)  rotate(-0.5deg); }
+        85% { transform: translateX(8px)   rotate(0.5deg); }
+      }
+
+      /* ── Explosion overlay ── */
+      #explosion-overlay {
+        position: fixed; inset: 0; z-index: 310;
+        display: none; overflow: hidden;
+        background: transparent;
+        transition: background 0.55s ease;
+      }
+      #explosion-overlay.flash     { background: rgba(255,160,30,0.72); }
+      #explosion-overlay.darkening { background: rgba(0,0,0,0.97); transition: background 0.65s ease; }
+
+      .boom-particle {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        animation: boom-fly 0.85s cubic-bezier(0.15, 0, 0.85, 0.6) forwards;
+      }
+      @keyframes boom-fly {
+        0%   { transform: translate(-50%,-50%) scale(1.3); opacity: 1; }
+        70%  { opacity: 0.8; }
+        100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0); opacity: 0; }
+      }
+
+      /* ── Game-over screen ── */
+      #gameover-screen {
+        position: fixed; inset: 0; z-index: 320;
+        display: none; flex-direction: column;
+        align-items: center; justify-content: center;
+        background: #000; text-align: center; padding: 2rem;
+      }
+      #gameover-screen.visible { display: flex; }
+      #gameover-emoji  { font-size: 4rem; margin-bottom: 1rem; animation: heartbeat 1s ease-in-out infinite; }
+      #gameover-title  { color: #f2f2f7; font-family: 'Georgia', serif; font-size: clamp(1.4rem,5vw,2.2rem); letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+      #gameover-sub    { color: #636366; font-family: system-ui, sans-serif; font-size: 0.88rem; margin-bottom: 2.5rem; line-height: 1.6; }
+      #gameover-retry  {
+        padding: 0.85rem 2.5rem; border: 1px solid #3a3a3c;
+        background: #1c1c1e; color: #f2f2f7;
+        font-family: system-ui, sans-serif; font-size: 0.88rem;
+        border-radius: 12px; cursor: pointer;
+        transition: background 0.2s, transform 0.15s;
+      }
+      #gameover-retry:hover { background: #2c2c2e; transform: scale(1.04); }
+      #gameover-retry:active { transform: scale(0.97); }
+
       @keyframes pulse {
         0%, 100% { opacity: 1; } 50% { opacity: 0.6; }
       }
@@ -465,7 +522,7 @@
         0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); }
       }
     </style>
-    <script type="module" crossorigin src="/anniv/assets/index-C0wFaYSO.js"></script>
+    <script type="module" crossorigin src="/anniv/assets/index-YneY6leE.js"></script>
   </head>
   <body>
 
@@ -508,6 +565,17 @@
         <button class="choice-btn" id="choice-ignore">💤 Ignore</button>
         <button class="choice-btn" id="choice-reply">💬 Reply</button>
       </div>
+    </div>
+
+    <!-- ── Explosion overlay (Ignore path) ── -->
+    <div id="explosion-overlay"></div>
+
+    <!-- ── Game-over screen ── -->
+    <div id="gameover-screen">
+      <div id="gameover-emoji">😅</div>
+      <div id="gameover-title">Okay then...</div>
+      <div id="gameover-sub">She left him on read. 💔<br>Maybe open it next time?</div>
+      <button id="gameover-retry">Try Again 🔄</button>
     </div>
 
     <!-- Rotate Prompt (portrait mobile) -->

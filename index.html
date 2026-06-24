@@ -226,6 +226,238 @@
         100% { transform: rotate(0deg);   }
       }
 
+      /* ══════════════════════════════════════════════════
+         OPENING SCENE — Bedroom
+      ══════════════════════════════════════════════════ */
+      #bedroom-overlay {
+        position: fixed; inset: 0; z-index: 105;
+        display: none; flex-direction: column;
+        align-items: center; justify-content: center;
+        cursor: pointer;
+        background:
+          radial-gradient(ellipse 50% 80% at 90% 50%, rgba(255,195,80,0.13) 0%, transparent 65%),
+          linear-gradient(160deg, #0e0a06 0%, #120e08 55%, #0a0806 100%);
+        opacity: 0; transition: opacity 0.8s ease;
+        overflow: hidden;
+      }
+      #bedroom-overlay.faded-in { opacity: 1; }
+      #bedroom-overlay.zooming  { opacity: 0; transition: opacity 0.5s ease; pointer-events: none; }
+
+      /* ambient window glow */
+      #bedroom-glow {
+        position: absolute; inset: 0; pointer-events: none;
+        background:
+          radial-gradient(ellipse 22% 80% at 94% 50%, rgba(255,200,90,0.2) 0%, transparent 100%),
+          radial-gradient(ellipse 55% 28% at 8% 92%, rgba(80,55,20,0.22) 0%, transparent 100%);
+      }
+
+      #bedroom-date {
+        font-family: 'Georgia', serif;
+        color: rgba(255,220,150,0.3); font-size: 0.7rem;
+        letter-spacing: 0.22em; text-transform: uppercase;
+        margin-bottom: 26px; user-select: none;
+      }
+
+      /* decorative phone */
+      #bedroom-phone {
+        width: 148px; height: 296px;
+        background: linear-gradient(160deg, #1a1a2c, #0e0e1c);
+        border-radius: 26px;
+        border: 2px solid #21213a;
+        position: relative; overflow: hidden;
+        box-shadow: 0 10px 50px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.04);
+        transition: box-shadow 0.6s ease, transform 0.4s ease;
+      }
+      /* camera notch */
+      #bedroom-phone::before {
+        content: ''; position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+        width: 40px; height: 8px; background: #08081a; border-radius: 4px; z-index: 2;
+      }
+      /* home indicator */
+      #bedroom-phone::after {
+        content: ''; position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+        width: 44px; height: 4px; background: rgba(255,255,255,0.16); border-radius: 2px;
+      }
+      #bedroom-phone.ringing {
+        transform: scale(1.03);
+        box-shadow:
+          0 10px 50px rgba(0,0,0,0.7),
+          0 0 38px rgba(52,199,89,0.5),
+          0 0 75px rgba(52,199,89,0.22);
+        animation: phone-ring 0.85s ease-in-out;
+      }
+      @keyframes phone-ring {
+        0%   { transform: scale(1) rotate(0deg); }
+        15%  { transform: scale(1.04) rotate(-2.5deg); }
+        35%  { transform: scale(1.04) rotate(2.5deg); }
+        55%  { transform: scale(1.04) rotate(-1.5deg); }
+        75%  { transform: scale(1.04) rotate(1.5deg); }
+        100% { transform: scale(1.03) rotate(0deg); }
+      }
+
+      #bedroom-phone-inner {
+        position: absolute; inset: 3px; background: #0d0d1c;
+        border-radius: 23px; display: flex; flex-direction: column;
+        padding-top: 24px; overflow: hidden;
+      }
+
+      /* notification banner inside decorative phone */
+      #bedroom-notif {
+        margin: 6px 7px;
+        background: rgba(26,26,44,0.96);
+        border-radius: 11px; padding: 8px 10px;
+        display: flex; align-items: center; gap: 7px;
+        opacity: 0; transform: translateY(-10px);
+        transition: opacity 0.4s ease 0.15s, transform 0.4s ease 0.15s;
+        border: 1px solid rgba(52,199,89,0.2);
+      }
+      #bedroom-phone.ringing #bedroom-notif { opacity: 1; transform: translateY(0); }
+      #bedroom-notif-app { font-size: 17px; flex-shrink: 0; }
+      #bedroom-notif-name {
+        font-family: system-ui, sans-serif; font-size: 8.5px;
+        font-weight: 700; color: #4ade80; letter-spacing: 0.02em;
+      }
+      #bedroom-notif-preview {
+        font-family: system-ui, sans-serif; font-size: 7.5px;
+        color: rgba(215,215,225,0.7); margin-top: 1px;
+      }
+
+      #bedroom-hint {
+        font-family: system-ui, sans-serif;
+        color: rgba(255,215,130,0.35); font-size: 0.67rem;
+        letter-spacing: 0.18em; text-transform: uppercase;
+        margin-top: 30px; opacity: 0; transition: opacity 0.55s ease;
+        user-select: none;
+      }
+      #bedroom-hint.visible { opacity: 1; }
+
+      /* ══════════════════════════════════════════════════
+         OPENING SCENE — Phone Chat Overlay (full-screen)
+      ══════════════════════════════════════════════════ */
+      #phone-overlay {
+        position: fixed; inset: 0; z-index: 106;
+        display: flex; flex-direction: column;
+        background: #111113;
+        transform: scale(0.2);
+        transform-origin: center center;
+        border-radius: 44px;
+        opacity: 0; pointer-events: none;
+        overflow: hidden;
+        transition:
+          transform 0.9s cubic-bezier(0.3, 0, 0.1, 1),
+          border-radius 0.9s ease,
+          opacity 0.45s ease 0.05s;
+      }
+      #phone-overlay.zoom-in { transform: scale(1); border-radius: 0; opacity: 1; }
+      #phone-overlay.revealed { pointer-events: all; }
+      #phone-overlay.fade-exit { opacity: 0; transition: opacity 0.45s ease; }
+
+      /* status bar */
+      #phone-status {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 7px 20px 3px;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 0.72rem; font-weight: 600; color: #e0e0e0;
+        background: #1c1c1e; flex-shrink: 0;
+      }
+
+      /* chat header */
+      #chat-header {
+        display: flex; align-items: center; gap: 9px;
+        padding: 8px 14px 10px;
+        background: #1c1c1e;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+        flex-shrink: 0;
+      }
+      #chat-back {
+        background: none; border: none; color: #0a84ff;
+        font-size: 1.75rem; font-weight: 300; line-height: 1;
+        cursor: pointer; padding: 0 2px;
+        font-family: system-ui, sans-serif;
+      }
+      #chat-avatar {
+        width: 38px; height: 38px; border-radius: 50%;
+        background: linear-gradient(135deg, #34c759, #25a244);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.88rem; font-weight: 700; color: #fff;
+        font-family: system-ui, sans-serif; flex-shrink: 0;
+      }
+      #chat-info { flex: 1; min-width: 0; }
+      #chat-name {
+        font-family: system-ui, sans-serif;
+        font-size: 0.95rem; font-weight: 600; color: #f2f2f7;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      #chat-active {
+        font-family: system-ui, sans-serif;
+        font-size: 0.64rem; color: #8e8e93; margin-top: 1px;
+      }
+      #chat-header-icons { color: #0a84ff; font-size: 1.1rem; letter-spacing: 0.4em; cursor: pointer; }
+
+      /* date separator */
+      #chat-date-sep {
+        text-align: center; flex-shrink: 0;
+        font-family: system-ui, sans-serif;
+        font-size: 0.63rem; font-weight: 500;
+        color: #636366; letter-spacing: 0.06em;
+        padding: 12px 0 6px;
+      }
+
+      /* messages area */
+      #chat-messages {
+        flex: 1; overflow-y: auto;
+        padding: 4px 14px 10px;
+        display: flex; flex-direction: column; gap: 5px;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+      }
+      #chat-messages::-webkit-scrollbar { display: none; }
+
+      /* bubbles */
+      .chat-bubble {
+        max-width: 72%; padding: 9px 13px;
+        border-radius: 20px;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 0.9rem; line-height: 1.45;
+        opacity: 0; word-break: break-word;
+        transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      }
+      .chat-bubble.right {
+        align-self: flex-end;
+        background: #34c759; color: #fff;
+        border-bottom-right-radius: 5px;
+        transform: translateX(18px);
+      }
+      .chat-bubble.left {
+        align-self: flex-start;
+        background: #2c2c2e; color: #f2f2f7;
+        border-bottom-left-radius: 5px;
+        transform: translateX(-18px);
+      }
+      .chat-bubble.shown { opacity: 1; transform: translateX(0); }
+
+      /* choice buttons */
+      #chat-choices {
+        display: flex; gap: 10px;
+        padding: 11px 16px 24px;
+        background: #1c1c1e;
+        border-top: 1px solid rgba(255,255,255,0.07);
+        flex-shrink: 0;
+        opacity: 0; transform: translateY(14px); pointer-events: none;
+        transition: opacity 0.4s ease, transform 0.4s ease;
+      }
+      #chat-choices.visible { opacity: 1; transform: translateY(0); pointer-events: all; }
+      .choice-btn {
+        flex: 1; padding: 12px 8px;
+        border-radius: 14px; border: none;
+        font-family: system-ui, sans-serif;
+        font-size: 0.88rem; font-weight: 600; cursor: pointer;
+        transition: transform 0.15s ease, filter 0.15s ease;
+      }
+      .choice-btn:active { transform: scale(0.96); filter: brightness(0.88); }
+      #choice-ignore { background: #2c2c2e; color: #8e8e93; border: 1px solid #3d3d3f; }
+      #choice-reply  { background: linear-gradient(135deg, #0a84ff, #006be6); color: #fff; box-shadow: 0 4px 18px rgba(10,132,255,0.4); }
+
       @keyframes pulse {
         0%, 100% { opacity: 1; } 50% { opacity: 0.6; }
       }
@@ -233,9 +465,50 @@
         0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); }
       }
     </style>
-    <script type="module" crossorigin src="/anniv/assets/index-DjsN5OcD.js"></script>
+    <script type="module" crossorigin src="/anniv/assets/index-z8xUFGLr.js"></script>
   </head>
   <body>
+
+    <!-- ── Opening Scene: Bedroom ── -->
+    <div id="bedroom-overlay">
+      <div id="bedroom-glow"></div>
+      <p id="bedroom-date">April 30, 2025</p>
+      <div id="bedroom-phone">
+        <div id="bedroom-phone-inner">
+          <div id="bedroom-notif">
+            <span id="bedroom-notif-app">💬</span>
+            <div>
+              <div id="bedroom-notif-name">Moncakesss 💚</div>
+              <div id="bedroom-notif-preview">Uy haha</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p id="bedroom-hint">tap anywhere to open</p>
+    </div>
+
+    <!-- ── Opening Scene: Phone Chat Overlay ── -->
+    <div id="phone-overlay">
+      <div id="phone-status">
+        <span>10:42</span>
+        <span>▲▲ 🔋</span>
+      </div>
+      <div id="chat-header">
+        <button id="chat-back" aria-label="Back">‹</button>
+        <div id="chat-avatar">M</div>
+        <div id="chat-info">
+          <div id="chat-name">Moncakesss 💚</div>
+          <div id="chat-active">Active now</div>
+        </div>
+        <div id="chat-header-icons">📞 🎥</div>
+      </div>
+      <div id="chat-date-sep">APR 30, 2025 AT 10:42 AM</div>
+      <div id="chat-messages"></div>
+      <div id="chat-choices">
+        <button class="choice-btn" id="choice-ignore">💤 Ignore</button>
+        <button class="choice-btn" id="choice-reply">💬 Reply</button>
+      </div>
+    </div>
 
     <!-- Rotate Prompt (portrait mobile) -->
     <div id="rotate-prompt">

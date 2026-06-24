@@ -198,6 +198,34 @@
         #final-close   { padding: 0.9rem 2rem; min-height: 52px; }
       }
 
+      /* ── Rotate Prompt (portrait on mobile) ── */
+      #rotate-prompt {
+        display: none;
+        position: fixed; inset: 0; z-index: 200;
+        background: linear-gradient(160deg, #4fc3f7 0%, #81d4fa 40%, #ffe0b2 100%);
+        flex-direction: column; align-items: center; justify-content: center;
+        text-align: center; padding: 2rem;
+      }
+      #rotate-prompt.show { display: flex; }
+      #rotate-icon {
+        font-size: 4rem; margin-bottom: 1.2rem;
+        animation: rotate-hint 2s ease-in-out infinite;
+      }
+      #rotate-msg {
+        color: #6d3b1e; font-size: 1.15rem; letter-spacing: 0.08em;
+        line-height: 1.6; font-family: 'Georgia', serif;
+      }
+      #rotate-sub {
+        color: #5d4037; font-size: 0.82rem; margin-top: 0.6rem;
+        opacity: 0.75; letter-spacing: 0.05em;
+      }
+      @keyframes rotate-hint {
+        0%   { transform: rotate(0deg);   }
+        30%  { transform: rotate(90deg);  }
+        70%  { transform: rotate(90deg);  }
+        100% { transform: rotate(0deg);   }
+      }
+
       @keyframes pulse {
         0%, 100% { opacity: 1; } 50% { opacity: 0.6; }
       }
@@ -208,6 +236,13 @@
     <script type="module" crossorigin src="/anniv/assets/index-B_lsWlhF.js"></script>
   </head>
   <body>
+
+    <!-- Rotate Prompt (portrait mobile) -->
+    <div id="rotate-prompt">
+      <div id="rotate-icon">📱</div>
+      <div id="rotate-msg">Please rotate your phone<br>to landscape mode 🌸</div>
+      <div id="rotate-sub">The world looks better sideways!</div>
+    </div>
 
     <!-- Loading -->
     <div id="loading-screen">
@@ -265,11 +300,35 @@
     </div>
 
     <script>
-      // Detect mobile and swap UI hints before the module loads
-      if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+      const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+
+      if (isMobile) {
         document.getElementById('start-controls-desktop').style.display = 'none'
         document.getElementById('start-controls-mobile').style.display  = 'block'
         document.getElementById('joystick-hint').style.display = 'block'
+
+        // Try to lock orientation to landscape (works on Android Chrome)
+        const tryLockLandscape = () => {
+          if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(() => {})
+          }
+        }
+
+        // Show/hide the rotate prompt based on orientation
+        const rotatePrompt = document.getElementById('rotate-prompt')
+        const checkOrientation = () => {
+          const isPortrait = window.innerHeight > window.innerWidth
+          rotatePrompt.classList.toggle('show', isPortrait)
+        }
+
+        // Try lock on first user interaction (required by browsers)
+        document.addEventListener('click', tryLockLandscape, { once: true })
+        document.addEventListener('touchstart', tryLockLandscape, { once: true })
+
+        window.addEventListener('resize', checkOrientation)
+        window.addEventListener('orientationchange', checkOrientation)
+        checkOrientation()
+
         // Make memory popup dismissible on tap
         document.addEventListener('DOMContentLoaded', () => {
           document.getElementById('memory-popup').addEventListener('click', () => {

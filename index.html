@@ -457,7 +457,11 @@
       }
       .choice-btn:active { transform: scale(0.96); filter: brightness(0.88); }
       #choice-ignore { background: #2c2c2e; color: #8e8e93; border: 1px solid #3d3d3f; }
-      #choice-reply  { background: linear-gradient(135deg, #0a84ff, #006be6); color: #fff; box-shadow: 0 4px 18px rgba(10,132,255,0.4); }
+      #choice-reply  {
+        background: linear-gradient(135deg, #f06292, #e91e8c);
+        color: #fff; box-shadow: 0 4px 18px rgba(240,98,146,0.45);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
 
       /* ── Shake (Ignore tap) ── */
       #phone-overlay.shake {
@@ -522,7 +526,7 @@
         0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); }
       }
     </style>
-    <script type="module" crossorigin src="/anniv/assets/index-YneY6leE.js"></script>
+    <script type="module" crossorigin src="/anniv/assets/index-Bt7A2mCn.js"></script>
   </head>
   <body>
 
@@ -563,7 +567,7 @@
       <div id="chat-messages"></div>
       <div id="chat-choices">
         <button class="choice-btn" id="choice-ignore">💤 Ignore</button>
-        <button class="choice-btn" id="choice-reply">💬 Reply</button>
+        <button class="choice-btn" id="choice-reply">…</button>
       </div>
     </div>
 

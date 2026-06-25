@@ -78,6 +78,14 @@
         background: linear-gradient(135deg, #e91e8c, #c2185b);
         box-shadow: 0 6px 30px rgba(240,98,146,0.6); transform: scale(1.05);
       }
+      #skip-btn {
+        margin-top: 0.8rem; padding: 0.45rem 1.2rem;
+        font-size: 0.72rem; font-family: system-ui, sans-serif;
+        letter-spacing: 0.08em; color: rgba(100,60,20,0.55);
+        background: transparent; border: 1px solid rgba(100,60,20,0.2);
+        border-radius: 20px; cursor: pointer; transition: all 0.2s;
+      }
+      #skip-btn:hover { background: rgba(100,60,20,0.08); color: rgba(100,60,20,0.8); }
       #start-controls {
         color: #795548; font-size: 0.78rem; margin-top: 2rem;
         letter-spacing: 0.06em; text-align: center; line-height: 1.8;
@@ -732,7 +740,7 @@
         40%          { transform: scale(1.2); opacity: 1; }
       }
     </style>
-    <script type="module" crossorigin src="/anniv/assets/index-j05-whP9.js"></script>
+    <script type="module" crossorigin src="/anniv/assets/index-DyoPHr4B.js"></script>
   </head>
   <body>
 
@@ -818,6 +826,7 @@
       <div id="start-title">Happy Anniversary</div>
       <div id="start-date">July 5 · A World Made for You</div>
       <button id="start-btn">Enter Our World</button>
+      <button id="skip-btn">Skip Intro (Dev)</button>
       <div id="start-controls" id="start-controls-desktop">
         WASD · Move &nbsp;|&nbsp; Mouse · Camera &nbsp;|&nbsp; Shift · Run<br>
         Walk near the glowing spots to discover memories 🐾

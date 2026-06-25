@@ -161,6 +161,31 @@
       }
       #crosshair.visible { display: block; }
 
+      /* ── Mobile Action Buttons (Run / Jump) ── */
+      #run-btn, #jump-btn {
+        display: none;
+        position: fixed;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.18);
+        border: 2px solid rgba(255,255,255,0.45);
+        color: rgba(255,255,255,0.9);
+        font-family: system-ui, sans-serif;
+        font-weight: 700; font-size: 0.72rem;
+        letter-spacing: 0.05em; text-transform: uppercase;
+        user-select: none; touch-action: none;
+        z-index: 200; align-items: center; justify-content: center;
+        backdrop-filter: blur(2px); cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        transition: background 0.08s, transform 0.08s;
+        box-shadow: 0 3px 16px rgba(0,0,0,0.28);
+      }
+      #run-btn.held, #jump-btn.held {
+        background: rgba(255,255,255,0.32);
+        transform: scale(0.93);
+      }
+      #jump-btn { width: 70px; height: 70px; right: 28px; bottom: 28px; }
+      #run-btn  { width: 58px; height: 58px; right: 112px; bottom: 36px; }
+
       /* ── Virtual Joystick ── */
       #joystick-base {
         position: fixed; display: none;
@@ -661,7 +686,7 @@
 
       /* compass arrow */
       #quest-arrow-wrap {
-        position: fixed; bottom: 3.5rem; right: 1.6rem;
+        position: fixed; top: 1rem; right: 1.6rem;
         z-index: 65; display: none;
         flex-direction: column; align-items: center; gap: 4px;
         pointer-events: none;
@@ -740,7 +765,7 @@
         40%          { transform: scale(1.2); opacity: 1; }
       }
     </style>
-    <script type="module" crossorigin src="/anniv/assets/index-DyoPHr4B.js"></script>
+    <script type="module" crossorigin src="/anniv/assets/index-DcrZCrqz.js"></script>
   </head>
   <body>
 
@@ -833,18 +858,22 @@
       </div>
       <div id="start-controls-mobile" style="display:none; color:#795548; font-size:0.82rem; margin-top:1.5rem; text-align:center; line-height:2; letter-spacing:0.05em;">
         Left side · Move &nbsp;|&nbsp; Right side · Look around<br>
-        Push joystick fully to run &nbsp;|&nbsp; 🐾 Follow the glowing spots
+        RUN · hold to sprint &nbsp;|&nbsp; JUMP · tap to jump &nbsp;|&nbsp; 🐾 Follow the glowing spots
       </div>
     </div>
 
     <!-- HUD -->
     <div id="hud">
       <div id="hud-title">Our World 🌸</div>
-      <div id="hud-controls">WASD · Move<br>Mouse · Camera<br>Shift · Run</div>
+      <div id="hud-controls">WASD · Move<br>Mouse · Camera<br>Shift · Run &nbsp;|&nbsp; Space · Jump</div>
     </div>
 
     <!-- Virtual Joystick (mobile) -->
     <div id="joystick-base"><div id="joystick-knob"></div></div>
+
+    <!-- Mobile action buttons (shown by JS when isMobile) -->
+    <button id="run-btn">RUN</button>
+    <button id="jump-btn">JUMP</button>
 
     <!-- Mobile swipe hint (bottom, shown before game starts on mobile) -->
     <div id="joystick-hint">

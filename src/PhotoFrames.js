@@ -40,7 +40,7 @@ export class PhotoFrames {
       depth: 0.12, bevelEnabled: true, bevelThickness: 0.06,
       bevelSize: 0.06, bevelSegments: 4,
     })
-    const borderMat = new THREE.MeshLambertMaterial({ color: 0xc2185b, emissive: 0x7b0033, emissiveIntensity: 0.4 })
+    const borderMat = new THREE.MeshStandardMaterial({ color: 0xc2185b, emissive: 0x7b0033, emissiveIntensity: 0.4, roughness: 0.3, metalness: 0.6 })
     const border = new THREE.Mesh(borderGeo, borderMat)
     border.position.z = -0.06
     group.add(border)
@@ -67,7 +67,7 @@ export class PhotoFrames {
     }
 
     // Stand post
-    const standMat = new THREE.MeshLambertMaterial({ color: 0x880e4f })
+    const standMat = new THREE.MeshStandardMaterial({ color: 0x880e4f, roughness: 0.4, metalness: 0.5 })
     const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 1.6, 6), standMat)
     stand.position.set(0, -2.2, 0)
     group.add(stand)
@@ -138,7 +138,7 @@ export class PhotoFrames {
     const group = new THREE.Group()
     const { x, z } = frame.position
 
-    const frameMat = new THREE.MeshLambertMaterial({ color: 0x8b0060 })
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0x8b0060, roughness: 0.3, metalness: 0.6 })
     group.add(new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.8, 0.08), frameMat))
 
     this.loader.load(
@@ -169,7 +169,7 @@ export class PhotoFrames {
       group.add(sprite)
     }
 
-    const standMat = new THREE.MeshLambertMaterial({ color: 0x5a0040 })
+    const standMat = new THREE.MeshStandardMaterial({ color: 0x5a0040, roughness: 0.4, metalness: 0.5 })
     const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 1.5, 6), standMat)
     stand.position.y = -1.5
     group.add(stand)

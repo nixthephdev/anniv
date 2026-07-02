@@ -1,16 +1,14 @@
 import * as THREE from 'three'
+import { toon, toonGradMap } from './toon.js'
 
 const MOBILE = ('ontouchstart' in window) || navigator.maxTouchPoints > 0
 
-function smoothNoise(x, z) {
-  return Math.sin(x * 0.15 + 1.3) * Math.cos(z * 0.12 - 0.7) * 1.6
-       + Math.sin(x * 0.07 - 2.1) * Math.sin(z * 0.09 + 1.1) * 2.2
-       + Math.sin(x * 0.03 + z * 0.04) * 1.0
-}
-
 function heightAt(x, z) {
-  const dist = Math.sqrt(x * x + z * z)
-  return smoothNoise(x, z) * Math.min(dist / 10, 1)
+  // One smooth hill centered near spawn, flat everywhere else
+  const dist = Math.sqrt(x * x + (z - 2) * (z - 2))
+  if (dist >= 26) return 0
+  const t = dist / 26
+  return 4.2 * (1 - t) * (1 - t)
 }
 
 function rngFrom(seed) {
@@ -30,9 +28,6 @@ export class Terrain {
     this._buildGround()
     this._buildGrassBlades()
     this._buildTrees()
-    this._buildFlowers()
-    this._buildPath()
-    this._buildRocks()
   }
 
   // ── Ground with realistic canvas texture ──────────────────────────────
@@ -49,21 +44,11 @@ export class Terrain {
     }
     geo.computeVertexNormals()
 
-    // Subtle vertex tint for large-scale color variation
-    const colors = []
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i), z = pos.getZ(i)
-      const n = (Math.sin(x * 0.07 + 1.1) * Math.cos(z * 0.08 - 0.5) + 1) * 0.5
-      const bright = 0.85 + n * 0.25
-      colors.push(bright, bright, bright)
-    }
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
-
     const tex = this._makeGrassTexture()
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping
     tex.repeat.set(22, 22)
 
-    const mat = new THREE.MeshLambertMaterial({ map: tex, vertexColors: true })
+    const mat = new THREE.MeshToonMaterial({ map: tex, gradientMap: toonGradMap() })
     const mesh = new THREE.Mesh(geo, mat)
     mesh.receiveShadow = true
     this.scene.add(mesh)
@@ -159,7 +144,7 @@ export class Terrain {
     geo.setAttribute('normal',   new THREE.BufferAttribute(normals,   3))
     geo.setIndex([0,1,2, 1,3,2, 2,3,4])
 
-    const mat = new THREE.MeshLambertMaterial({ side: THREE.DoubleSide })
+    const mat = new THREE.MeshToonMaterial({ side: THREE.DoubleSide, gradientMap: toonGradMap() })
 
     // Wind via onBeforeCompile (injects into Three.js's Lambert vertex shader)
     mat.onBeforeCompile = shader => {
@@ -197,6 +182,8 @@ export class Terrain {
       const x = Math.cos(angle) * dist
       const z = Math.sin(angle) * dist
 
+      if (z < -44) continue   // skip road + SM zone
+
       dummy.position.set(x, heightAt(x, z), z)
       dummy.rotation.set(0, rng() * Math.PI * 2, (rng() - 0.5) * 0.35)
       dummy.scale.setScalar(0.55 + rng() * 0.9)
@@ -224,6 +211,7 @@ export class Terrain {
       const dist  = 14 + rng() * 78
       const x = Math.cos(angle) * dist
       const z = Math.sin(angle) * dist
+      if (z < -44) continue   // skip road + SM zone
       this._placeTree(x, z, rng)
     }
   }
@@ -262,11 +250,11 @@ export class Terrain {
     // ── Foliage: 1 main + 4-7 satellite blobs ──
     const baseR = 1.8 + rng() * 1.6
     const foliageMats = [
-      new THREE.MeshLambertMaterial({ color: 0x1b5e20 }),
-      new THREE.MeshLambertMaterial({ color: 0x2e7d32 }),
-      new THREE.MeshLambertMaterial({ color: 0x388e3c }),
-      new THREE.MeshLambertMaterial({ color: 0x43a047 }),
-      new THREE.MeshLambertMaterial({ color: 0x558b2f }),
+      toon(0x1b7a28),
+      toon(0x27913a),
+      toon(0x34a84e),
+      toon(0x4bbf5e),
+      toon(0x3d8c30),
     ]
 
     // Main central blob
@@ -355,7 +343,7 @@ export class Terrain {
     tex.repeat.set(2, 1)
     tex.colorSpace = THREE.SRGBColorSpace
 
-    this._barkMat = new THREE.MeshLambertMaterial({ map: tex })
+    this._barkMat = new THREE.MeshToonMaterial({ map: tex, gradientMap: toonGradMap() })
     return this._barkMat
   }
 
@@ -379,6 +367,8 @@ export class Terrain {
       const dist  = 6 + rng() * 72
       const x = Math.cos(angle) * dist
       const z = Math.sin(angle) * dist
+      if (z < -44) continue   // skip road + SM zone
+
       const y = heightAt(x, z)
       const def = flowerDefs[Math.floor(rng() * flowerDefs.length)]
 
@@ -394,7 +384,7 @@ export class Terrain {
 
     // ── Stem ──
     const stemH = 0.22 + rng() * 0.14
-    const stemMat = new THREE.MeshLambertMaterial({ color: 0x33691e })
+    const stemMat = toon(0x33691e)
     const stem = new THREE.Mesh(
       new THREE.CylinderGeometry(0.012, 0.018, stemH, 5),
       stemMat
@@ -403,7 +393,7 @@ export class Terrain {
     group.add(stem)
 
     // ── Leaves on stem ──
-    const leafMat = new THREE.MeshLambertMaterial({ color: 0x388e3c, side: THREE.DoubleSide })
+    const leafMat = toon(0x388e3c, { side: THREE.DoubleSide })
     const leafShape = new THREE.Shape()
     leafShape.moveTo(0, 0)
     leafShape.quadraticCurveTo(0.065, 0.04, 0.045, 0.13)
@@ -428,7 +418,7 @@ export class Terrain {
     petalShape.quadraticCurveTo( 0,  pl + pw * 0.3, -pw * 0.35, pl)
     petalShape.quadraticCurveTo(-pw, pl * 0.35,  0, 0)
     const petalGeo = new THREE.ShapeGeometry(petalShape, 7)
-    const petalMat = new THREE.MeshLambertMaterial({ color: def.color, side: THREE.DoubleSide })
+    const petalMat = toon(def.color, { side: THREE.DoubleSide })
 
     const flowerTop = stemH + 0.01
     for (let p = 0; p < def.petals; p++) {
@@ -443,9 +433,8 @@ export class Terrain {
     }
 
     // ── Center (stamen) ──
-    const cenMat = new THREE.MeshLambertMaterial({
-      color: def.center,
-      emissive: new THREE.Color(def.center).multiplyScalar(0.25),
+    const cenMat = toon(def.center, {
+      emissive: new THREE.Color(def.center).multiplyScalar(0.3),
     })
     const cen = new THREE.Mesh(new THREE.SphereGeometry(pw * 0.9, 8, 7), cenMat)
     cen.position.y = flowerTop + 0.008
@@ -483,7 +472,7 @@ export class Terrain {
       for (let s = 0; s < 5; s++) {
         const ox = (rng() - 0.5) * 2.2, oz = (rng() - 0.5) * 2.2
         const col = stoneColors[Math.floor(rng() * stoneColors.length)]
-        const mat = new THREE.MeshLambertMaterial({ color: col })
+        const mat = toon(col)
         const sx = 0.22 + rng() * 0.22
         const sy = 0.04 + rng() * 0.04
         const sz = 0.22 + rng() * 0.22
@@ -509,11 +498,13 @@ export class Terrain {
       const angle = rng() * Math.PI * 2
       const dist  = 18 + rng() * 65
       const x = Math.cos(angle) * dist, z = Math.sin(angle) * dist
+      if (z < -44) continue   // skip road + SM zone
+
       const y = heightAt(x, z)
       const s = 0.18 + rng() * 0.55
       const col = rockColors[Math.floor(rng() * rockColors.length)]
 
-      const mat = new THREE.MeshLambertMaterial({ color: col })
+      const mat = toon(col)
       const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(s, 0), mat)
       rock.position.set(x, y + s * 0.35, z)
       rock.rotation.set(rng() * Math.PI, rng() * Math.PI, rng() * Math.PI)

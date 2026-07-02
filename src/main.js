@@ -1,12 +1,14 @@
 import * as THREE from 'three'
-import { World } from './World.js'
+import { World }        from './World.js'
+import { OpeningScene } from './OpeningScene.js'
 
 const canvas = document.createElement('canvas')
 document.body.appendChild(canvas)
 
-const world = new World(canvas)
+const world   = new World(canvas)
+const opening = new OpeningScene()
 
-// Loading progress simulation + real asset loading
+// ── Loading progress ────────────────────────────────────────────────────
 const bar = document.getElementById('loading-bar')
 let progress = 0
 const tick = setInterval(() => {
@@ -26,6 +28,17 @@ world.init().then(() => {
   }, 400)
 })
 
-document.addEventListener('game:start', () => {
+// ── Start button → Opening scene → Game ────────────────────────────────
+document.getElementById('start-btn').addEventListener('click', async () => {
+  document.getElementById('start-screen').classList.remove('visible')
+  const choice = await opening.play()
   world.start()
+  document.dispatchEvent(new CustomEvent('game:start', { detail: { choice } }))
+})
+
+// ── Skip button → bypass intro, go straight to world (dev) ──────────────
+document.getElementById('skip-btn').addEventListener('click', () => {
+  document.getElementById('start-screen').classList.remove('visible')
+  world.start()
+  document.dispatchEvent(new CustomEvent('game:start'))
 })

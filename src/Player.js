@@ -1,9 +1,16 @@
 import * as THREE from 'three'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { toon, toonGradMap } from './toon.js'
+import { PHYS_HALF_H, PHYS_RADIUS } from './Physics.js'
+
+// Scratch objects — allocated once, reused every frame to avoid GC pressure
+const _tmpQ = new THREE.Quaternion()
+const _tmpE = new THREE.Euler()
 
 const WALK_SPEED     = 5
 const RUN_SPEED      = 9
-const CAM_DIST       = 5.5
-const CAM_HEIGHT     = 2.8
+const CAM_DIST       = 3.2
+const CAM_HEIGHT     = 1.8
 const MOUSE_SENS     = 0.0022
 const TOUCH_CAM_SENS = 0.0042
 const JOY_RADIUS     = 52   // px — max joystick knob travel
@@ -28,11 +35,32 @@ export class Player {
     this.locked      = false
     this.keys        = {}
 
+    // Jump physics
+    this.velY       = 0
+    this.isGrounded = true
+
+    // Mobile button state
+    this.runPressed  = false
+
     // Touch state
     this.joystick = { active: false, id: -1, startX: 0, startY: 0, dx: 0, dy: 0 }
     this.camTouch = { active: false, id: -1, lastX: 0, lastY: 0 }
 
+    this._fbxLoaded      = false
+    this._mixer          = null
+    this._actions        = {}
+    this._currentAction  = 'idle'
+    this._vrmBones       = null
+    this._modelFlipped   = false
+
+    // Physics (set later via initPhysics() once Rapier is ready)
+    this._physicsReady   = false
+    this._physController = null
+    this._physCollider   = null
+    this._jumpCooldown   = 0
+
     this._buildCharacter()
+    this._loadCharacter()   // async — swaps in when model.glb is present
     this._setupStartButton()
     if (isMobile) {
       this._setupTouchControls()
@@ -43,14 +71,228 @@ export class Player {
     this._updateCamera()
   }
 
+  // ── GLTF character loader (hot-swaps the procedural mesh when ready) ─────
+
+  async _loadCharacter() {
+    const base = import.meta.env.BASE_URL
+    let gltf
+    try {
+      gltf = await new GLTFLoader().loadAsync(`${base}character/her.glb`)
+    } catch {
+      return   // no file present — procedural character keeps running fine
+    }
+
+    const model = gltf.scene
+
+    // Trust the GLB's own materials — VRoid/Blender export preserves outfit colors.
+    model.traverse(child => {
+      if (!child.isMesh) return
+      child.castShadow = true
+    })
+
+    // Auto-scale using mesh-only bounding box (skeleton bones inflate the default box)
+    const meshBox = new THREE.Box3()
+    model.traverse(c => { if (c.isMesh) meshBox.expandByObject(c) })
+    if (!meshBox.isEmpty()) {
+      const height = meshBox.max.y - meshBox.min.y
+      if (height > 2.2 || height < 1.0) model.scale.setScalar(1.65 / height)
+      // Shift so mesh floor lands at y=0 (charGroup is placed at feet position)
+      model.updateMatrixWorld(true)
+      const floorBox = new THREE.Box3()
+      model.traverse(c => { if (c.isMesh) floorBox.expandByObject(c) })
+      if (floorBox.min.y !== 0) model.position.y -= floorBox.min.y
+    }
+
+    // Wire up animations if the GLB ships named clips (Soldier-style).
+    // VRoid exports typically have no walk/run clips.
+    // Mixamo retargeted clips have bone axis mismatches with VRM skeleton —
+    // skip clip-based animation and drive bones procedurally via _animateVRMBones().
+    const clips = gltf.animations
+    console.info('[Player] GLB has', clips.length, 'clips — using procedural VRM animation')
+
+    // Find VRM humanoid bones for procedural walk animation
+    // VRoid Studio names: J_Bip_C_Hips, J_Bip_L_UpperLeg, J_Bip_R_UpperArm, etc.
+    // Use exact J_Bip_* names — VRoid's J_Sec_* are spring/clothing bones, not skeleton
+    // Log ALL bones so we know the exact names in her.glb
+    const allBones = []
+    model.traverse(obj => { if (obj.isBone || obj.type === 'Bone') allBones.push(obj.name) })
+    console.info('[VRM] all bones in her.glb:', allBones)
+
+    const vb = {}
+    model.traverse(obj => {
+      const n = obj.name
+      // Use endsWith so armature-prefixed names like "Armature_J_Bip_C_Hips" also match
+      if (n.endsWith('J_Bip_C_Hips'))     vb.hips      = obj
+      if (n.endsWith('J_Bip_C_Spine'))    vb.spine     = obj
+      if (n.endsWith('J_Bip_L_UpperLeg')) vb.leftThigh  = obj
+      if (n.endsWith('J_Bip_R_UpperLeg')) vb.rightThigh = obj
+      if (n.endsWith('J_Bip_L_LowerLeg')) vb.leftShin   = obj
+      if (n.endsWith('J_Bip_R_LowerLeg')) vb.rightShin  = obj
+      if (n.endsWith('J_Bip_L_UpperArm')) vb.leftArm    = obj
+      if (n.endsWith('J_Bip_R_UpperArm')) vb.rightArm   = obj
+    })
+    this._vrmBones = Object.keys(vb).length >= 2 ? vb : null
+    console.info('[VRM] matched bones:', Object.keys(vb))
+
+    // Save rest quaternions so animation can be applied as OFFSET from rest,
+    // not as absolute replacement (absolute replacement was causing T-pose lock).
+    this._vrmRestQ = {}
+    for (const [key, bone] of Object.entries(vb)) {
+      this._vrmRestQ[key] = bone.quaternion.clone()
+    }
+
+    // Always mark loaded so procedural limb-swing stops running on cleared objects
+    this._fbxLoaded = true
+
+    // Swap procedural mesh out; charGroup retains its world position/rotation
+    this.charGroup.clear()
+    this.charGroup.add(model)
+    console.info('[Player] GLTF character loaded ✓', clips.length, 'clips')
+  }
+
+  // Smooth crossfade between named animation clips
+  _setAction(name) {
+    if (this._currentAction === name) return
+    const from = this._actions[this._currentAction]
+    const to   = this._actions[name] ?? this._actions.idle
+    if (!to) return
+    if (from && from !== to) from.fadeOut(0.22)
+    to.reset().fadeIn(0.22).play()
+    this._currentAction = name
+  }
+
+  // Called every frame when GLTF character is active
+  _updateFBXAnim() {
+    if (this._mixer) {
+      // Clip-based animation (Soldier.glb / any GLB with Idle+Walk+Run)
+      if (!this.isGrounded) { this._setAction('idle'); return }
+      if (!this.isMoving)   { this._setAction('idle'); return }
+      if (this.isRunning && this._actions.run) { this._setAction('run');  return }
+      if (this._actions.walk)                  { this._setAction('walk'); return }
+      this._setAction('idle')
+    } else {
+      // VRoid / no-clip model — drive bones procedurally
+      this._animateVRMBones()
+    }
+  }
+
+  // Apply an euler offset (x,y,z) on top of the bone's saved rest quaternion.
+  // Using offset-from-rest guarantees visible movement regardless of what rotation
+  // the GLTF file baked into the bone's initial quaternion.
+  _off(key, x, y, z) {
+    const b = this._vrmBones, r = this._vrmRestQ
+    if (!b?.[key] || !r?.[key]) return
+    _tmpE.set(x, y, z)
+    b[key].quaternion.copy(r[key]).multiply(_tmpQ.setFromEuler(_tmpE))
+  }
+
+  _animateVRMBones() {
+    const b = this._vrmBones, r = this._vrmRestQ
+    if (!b || !r) return
+
+    // Jump pose
+    if (!this.isGrounded) {
+      this._off('leftThigh',  -0.4, 0, 0); this._off('rightThigh', -0.4, 0, 0)
+      this._off('leftShin',    0.5, 0, 0); this._off('rightShin',   0.5, 0, 0)
+      this._off('leftArm',  -0.4, 0, -0.4); this._off('rightArm', -0.4, 0, 0.4)
+      return
+    }
+
+    if (this.isMoving) {
+      const mag   = this.isRunning ? 0.7 : 0.5
+      const swing = Math.sin(this.walkCycle) * mag
+
+      // Legs: X-axis swing forward/back
+      this._off('leftThigh',   swing, 0, 0)
+      this._off('rightThigh', -swing, 0, 0)
+      // Knee bend: trail leg curls
+      this._off('leftShin',  Math.max(0, -swing) * 0.65, 0, 0)
+      this._off('rightShin', Math.max(0,  swing) * 0.65, 0, 0)
+      // Arms: A-pose (Z offset) + counter-swing (X offset)
+      this._off('leftArm',  -swing * 0.38, 0, -0.4)
+      this._off('rightArm',  swing * 0.38, 0,  0.4)
+
+      if (b.hips && r.hips) {
+        b.hips.quaternion.copy(r.hips).multiply(
+          _tmpQ.setFromEuler(_tmpE.set(0, Math.sin(this.walkCycle) * 0.08, Math.sin(this.walkCycle * 2) * 0.06))
+        )
+      }
+      if (b.spine && r.spine) {
+        b.spine.quaternion.copy(r.spine).multiply(
+          _tmpQ.setFromEuler(_tmpE.set(this.isRunning ? -0.14 : -0.05, 0, 0))
+        )
+      }
+    } else {
+      // Idle: arms in A-pose; damp limbs back toward rest
+      this._off('leftArm',  0, 0, -0.4)
+      this._off('rightArm', 0, 0,  0.4)
+
+      const slerp = key => { if (b[key] && r[key]) b[key].quaternion.slerp(r[key], 0.12) }
+      slerp('leftThigh'); slerp('rightThigh')
+      slerp('leftShin');  slerp('rightShin')
+      slerp('hips');      slerp('spine')
+    }
+  }
+
+  // ── Rapier physics character controller ───────────────────────────────
+
+  initPhysics(physics) {
+    const { controller, collider } = physics.createCharacterController(
+      this.pos.x, this.pos.y, this.pos.z
+    )
+    this._physController = controller
+    this._physCollider   = collider
+    this._physicsReady   = true
+    console.info('[Player] Physics character controller active ✓')
+  }
+
+  _updateWithPhysics(delta, moveDir, speed) {
+    const vx = this.isMoving ? moveDir.x * speed * delta : 0
+    const vz = this.isMoving ? moveDir.z * speed * delta : 0
+
+    // Vertical: small constant push keeps character pressed to ground;
+    // when jumping or in air, gravity accumulates in velY
+    if (this.isGrounded && this._jumpCooldown <= 0) {
+      this.velY = -2   // ground-press — prevents floating on slopes
+    } else {
+      this.velY -= 22 * delta
+      if (this._jumpCooldown > 0) this._jumpCooldown -= delta
+    }
+
+    this._physController.computeColliderMovement(
+      this._physCollider, { x: vx, y: this.velY * delta, z: vz }
+    )
+    const mv = this._physController.computedMovement()
+
+    // Only trust Rapier's "grounded" flag outside the jump window
+    if (this._jumpCooldown <= 0) {
+      this.isGrounded = this._physController.computedGrounded()
+    }
+
+    // Move standalone collider
+    const p = this._physCollider.translation()
+    this._physCollider.setTranslation({
+      x: p.x + mv.x,
+      y: p.y + mv.y,
+      z: p.z + mv.z,
+    })
+
+    // Feet position = capsule centre − (halfH + radius)
+    const np = this._physCollider.translation()
+    this.pos.set(
+      Math.max(-130, Math.min(130, np.x)),
+      np.y - (PHYS_HALF_H + PHYS_RADIUS),
+      Math.max(-130, Math.min(130, np.z))
+    )
+  }
+
   // ── Start button ───────────────────────────────────────────────────────
 
   _setupStartButton() {
-    document.getElementById('start-btn').addEventListener('click', () => {
-      document.getElementById('start-screen').classList.remove('visible')
+    // Listen on game:start so main.js controls the flow (opening scene plays first)
+    document.addEventListener('game:start', () => {
       document.getElementById('hud').classList.add('visible')
       this.ui.startMusic()
-      document.dispatchEvent(new CustomEvent('game:start'))
 
       if (isMobile) {
         this.locked = true
@@ -81,8 +323,16 @@ export class Player {
   }
 
   _setupKeyboard() {
-    window.addEventListener('keydown', e => { this.keys[e.code] = true })
-    window.addEventListener('keyup',   e => { this.keys[e.code] = false })
+    window.addEventListener('keydown', e => {
+      this.keys[e.code] = true
+      if (e.code === 'Space' && this.isGrounded && this.locked) {
+        this.isGrounded  = false
+        this.velY        = 8
+        this._jumpCooldown = 0.25
+        e.preventDefault()
+      }
+    })
+    window.addEventListener('keyup', e => { this.keys[e.code] = false })
   }
 
   // ── Mobile: virtual joystick + camera drag ────────────────────────────
@@ -158,6 +408,44 @@ export class Player {
     canvas.addEventListener('touchmove',   onMove,  { passive: false })
     canvas.addEventListener('touchend',    onEnd,   { passive: false })
     canvas.addEventListener('touchcancel', onEnd,   { passive: false })
+
+    // ── Run / Jump buttons ────────────────────────────────────────────────
+    const runBtn  = document.getElementById('run-btn')
+    const jumpBtn = document.getElementById('jump-btn')
+    runBtn.style.display  = 'flex'
+    jumpBtn.style.display = 'flex'
+
+    runBtn.addEventListener('touchstart', e => {
+      e.preventDefault()
+      this.runPressed = true
+      runBtn.classList.add('held')
+    }, { passive: false })
+    runBtn.addEventListener('touchend', e => {
+      e.preventDefault()
+      this.runPressed = false
+      runBtn.classList.remove('held')
+    }, { passive: false })
+    runBtn.addEventListener('touchcancel', () => {
+      this.runPressed = false
+      runBtn.classList.remove('held')
+    })
+
+    jumpBtn.addEventListener('touchstart', e => {
+      e.preventDefault()
+      if (this.isGrounded) {
+        this.isGrounded    = false
+        this.velY          = 8
+        this._jumpCooldown = 0.25
+      }
+      jumpBtn.classList.add('held')
+    }, { passive: false })
+    jumpBtn.addEventListener('touchend', e => {
+      e.preventDefault()
+      jumpBtn.classList.remove('held')
+    }, { passive: false })
+    jumpBtn.addEventListener('touchcancel', () => {
+      jumpBtn.classList.remove('held')
+    })
   }
 
   // ── Character model ────────────────────────────────────────────────────
@@ -165,12 +453,12 @@ export class Player {
   _buildCharacter() {
     this.charGroup = new THREE.Group()
 
-    const skin    = new THREE.MeshLambertMaterial({ color: 0xffccaa })
-    const top     = new THREE.MeshLambertMaterial({ color: 0xf06292 })
-    const pants   = new THREE.MeshLambertMaterial({ color: 0x42a5f5 })
-    const hair    = new THREE.MeshLambertMaterial({ color: 0x1a0a00 })
-    const shoe    = new THREE.MeshLambertMaterial({ color: 0xfafafa })
-    const shoeSole = new THREE.MeshLambertMaterial({ color: 0xbdbdbd })
+    const skin     = toon(0xffccaa)
+    const top      = toon(0xf06292)
+    const pants    = toon(0x42a5f5)
+    const hair     = toon(0x1a0a00)
+    const shoe     = toon(0xfafafa)
+    const shoeSole = toon(0xbdbdbd)
 
     // Head
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.195, 14, 10), skin)
@@ -276,9 +564,8 @@ export class Player {
       if (this.joystick.active) {
         move.addScaledVector(fwd,  -this.joystick.dy)
         move.addScaledVector(right,  this.joystick.dx)
-        const intensity = Math.sqrt(this.joystick.dx ** 2 + this.joystick.dy ** 2)
-        this.isRunning = intensity > 0.72
       }
+      this.isRunning = this.runPressed
     } else {
       if (this.keys['KeyW'] || this.keys['ArrowUp'])    move.addScaledVector(fwd,   1)
       if (this.keys['KeyS'] || this.keys['ArrowDown'])  move.addScaledVector(fwd,  -1)
@@ -291,10 +578,7 @@ export class Player {
     const speed = this.isRunning ? RUN_SPEED : WALK_SPEED
 
     if (this.isMoving) {
-      move.normalize().multiplyScalar(speed)
-      this.pos.x += move.x * delta
-      this.pos.z += move.z * delta
-
+      move.normalize()
       const targetRotY = Math.atan2(move.x, move.z)
       const diff = ((targetRotY - this.charRotY + Math.PI * 3) % (Math.PI * 2)) - Math.PI
       this.charRotY += diff * Math.min(1, delta * 10)
@@ -303,19 +587,59 @@ export class Player {
       this.walkCycle += delta * 1.2
     }
 
-    this.pos.y = this.terrain.getHeightAt(this.pos.x, this.pos.z)
-    this.pos.x = Math.max(-93, Math.min(93, this.pos.x))
-    this.pos.z = Math.max(-93, Math.min(93, this.pos.z))
+    if (this._physicsReady) {
+      // ── Physics path: Rapier handles all collision + gravity ──────────────
+      this._updateWithPhysics(delta, move, speed)
+    } else {
+      // ── Fallback: original terrain-height movement ────────────────────────
+      if (this.isMoving) {
+        this.pos.x += move.x * speed * delta
+        this.pos.z += move.z * speed * delta
+      }
+      const groundY = this._getGroundHeight(this.pos.x, this.pos.z)
+      if (this.isGrounded) {
+        this.pos.y = groundY
+      } else {
+        this.velY  -= 22 * delta
+        this.pos.y += this.velY * delta
+        if (this.pos.y <= groundY) {
+          this.pos.y  = groundY
+          this.velY   = 0
+          this.isGrounded = true
+        }
+      }
+      this.pos.x = Math.max(-130, Math.min(130, this.pos.x))
+      this.pos.z = Math.max(-130, Math.min(130, this.pos.z))
+    }
 
     this.charGroup.position.set(this.pos.x, this.pos.y, this.pos.z)
     this.charGroup.rotation.y = this.charRotY
 
-    this._animate()
+    if (this._mixer) this._mixer.update(delta)
+
+    if (this._fbxLoaded) {
+      this._updateFBXAnim()
+    } else {
+      this._animate()   // procedural fallback while (or if) FBX isn't loaded
+    }
+
     this._updateCamera()
     this.memorySpots.checkProximity(this.pos)
   }
 
   _animate() {
+    if (!this.isGrounded) {
+      // Jump / fall pose: tuck legs up, raise arms
+      const tuck = this.velY > 0 ? 0.7 : 0.45
+      this.leftLeg.rotation.x  = -0.55 * tuck
+      this.rightLeg.rotation.x = -0.55 * tuck
+      this.leftArm.rotation.x  = -0.4
+      this.rightArm.rotation.x = -0.4
+      this.charGroup.rotation.x = this.velY > 0 ? -0.1 : 0.06
+      this.charGroup.position.y = this.pos.y
+      return
+    }
+
     if (this.isMoving) {
       const swing = Math.sin(this.walkCycle) * (this.isRunning ? 0.85 : 0.65)
       this.leftLeg.rotation.x  =  swing
@@ -332,6 +656,20 @@ export class Player {
       this.leftArm.rotation.x  *= 0.88
       this.rightArm.rotation.x *= 0.88
     }
+  }
+
+  // Returns flat y=0 for paved zones (road, sidewalks, SM grounds)
+  // so the player walks on the road surface instead of the terrain mesh.
+  _getGroundHeight(x, z) {
+    // Road corridor + sidewalks (z -48 to -76) and SM building grounds (z -76 to -115)
+    if (z <= -48 && z >= -115) return 0
+    const raw = this.terrain.getHeightAt(x, z)
+    // Smooth blend from terrain into paved zone over 4 units
+    if (z <= -44 && z > -48) {
+      const t = (-z - 44) / 4   // 0 at z=-44, 1 at z=-48
+      return raw * (1 - t)
+    }
+    return raw
   }
 
   _updateCamera() {

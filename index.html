@@ -78,6 +78,14 @@
         background: linear-gradient(135deg, #e91e8c, #c2185b);
         box-shadow: 0 6px 30px rgba(240,98,146,0.6); transform: scale(1.05);
       }
+      #skip-btn {
+        margin-top: 0.8rem; padding: 0.45rem 1.2rem;
+        font-size: 0.72rem; font-family: system-ui, sans-serif;
+        letter-spacing: 0.08em; color: rgba(100,60,20,0.55);
+        background: transparent; border: 1px solid rgba(100,60,20,0.2);
+        border-radius: 20px; cursor: pointer; transition: all 0.2s;
+      }
+      #skip-btn:hover { background: rgba(100,60,20,0.08); color: rgba(100,60,20,0.8); }
       #start-controls {
         color: #795548; font-size: 0.78rem; margin-top: 2rem;
         letter-spacing: 0.06em; text-align: center; line-height: 1.8;
@@ -153,6 +161,31 @@
       }
       #crosshair.visible { display: block; }
 
+      /* ── Mobile Action Buttons (Run / Jump) ── */
+      #run-btn, #jump-btn {
+        display: none;
+        position: fixed;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.18);
+        border: 2px solid rgba(255,255,255,0.45);
+        color: rgba(255,255,255,0.9);
+        font-family: system-ui, sans-serif;
+        font-weight: 700; font-size: 0.72rem;
+        letter-spacing: 0.05em; text-transform: uppercase;
+        user-select: none; touch-action: none;
+        z-index: 200; align-items: center; justify-content: center;
+        backdrop-filter: blur(2px); cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        transition: background 0.08s, transform 0.08s;
+        box-shadow: 0 3px 16px rgba(0,0,0,0.28);
+      }
+      #run-btn.held, #jump-btn.held {
+        background: rgba(255,255,255,0.32);
+        transform: scale(0.93);
+      }
+      #jump-btn { width: 70px; height: 70px; right: 28px; bottom: 28px; }
+      #run-btn  { width: 58px; height: 58px; right: 112px; bottom: 36px; }
+
       /* ── Virtual Joystick ── */
       #joystick-base {
         position: fixed; display: none;
@@ -198,15 +231,675 @@
         #final-close   { padding: 0.9rem 2rem; min-height: 52px; }
       }
 
+      /* ── Rotate Prompt (portrait on mobile) ── */
+      #rotate-prompt {
+        display: none;
+        position: fixed; inset: 0; z-index: 200;
+        background: linear-gradient(160deg, #4fc3f7 0%, #81d4fa 40%, #ffe0b2 100%);
+        flex-direction: column; align-items: center; justify-content: center;
+        text-align: center; padding: 2rem;
+      }
+      #rotate-prompt.show { display: flex; }
+      #rotate-icon {
+        font-size: 4rem; margin-bottom: 1.2rem;
+        animation: rotate-hint 2s ease-in-out infinite;
+      }
+      #rotate-msg {
+        color: #6d3b1e; font-size: 1.15rem; letter-spacing: 0.08em;
+        line-height: 1.6; font-family: 'Georgia', serif;
+      }
+      #rotate-sub {
+        color: #5d4037; font-size: 0.82rem; margin-top: 0.6rem;
+        opacity: 0.75; letter-spacing: 0.05em;
+      }
+      @keyframes rotate-hint {
+        0%   { transform: rotate(0deg);   }
+        30%  { transform: rotate(90deg);  }
+        70%  { transform: rotate(90deg);  }
+        100% { transform: rotate(0deg);   }
+      }
+
+      /* ══════════════════════════════════════════════════
+         OPENING SCENE — Bedroom
+      ══════════════════════════════════════════════════ */
+      #bedroom-overlay {
+        position: fixed; inset: 0; z-index: 105;
+        display: none; flex-direction: column;
+        align-items: center; justify-content: center;
+        cursor: pointer;
+        background:
+          radial-gradient(ellipse 50% 80% at 90% 50%, rgba(255,195,80,0.13) 0%, transparent 65%),
+          linear-gradient(160deg, #0e0a06 0%, #120e08 55%, #0a0806 100%);
+        opacity: 0; transition: opacity 0.8s ease;
+        overflow: hidden;
+      }
+      #bedroom-overlay.faded-in { opacity: 1; }
+      #bedroom-overlay.zooming  { opacity: 0; transition: opacity 0.5s ease; pointer-events: none; }
+
+      /* ambient window glow */
+      #bedroom-glow {
+        position: absolute; inset: 0; pointer-events: none;
+        background:
+          radial-gradient(ellipse 22% 80% at 94% 50%, rgba(255,200,90,0.2) 0%, transparent 100%),
+          radial-gradient(ellipse 55% 28% at 8% 92%, rgba(80,55,20,0.22) 0%, transparent 100%);
+      }
+
+      #bedroom-date {
+        font-family: 'Georgia', serif;
+        color: rgba(255,220,150,0.3); font-size: 0.7rem;
+        letter-spacing: 0.22em; text-transform: uppercase;
+        margin-bottom: 26px; user-select: none;
+      }
+
+      /* decorative phone */
+      #bedroom-phone {
+        width: 148px; height: 296px;
+        background: linear-gradient(160deg, #1a1a2c, #0e0e1c);
+        border-radius: 26px;
+        border: 2px solid #21213a;
+        position: relative; overflow: hidden;
+        box-shadow: 0 10px 50px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.04);
+        transition: box-shadow 0.6s ease, transform 0.4s ease;
+      }
+      /* camera notch */
+      #bedroom-phone::before {
+        content: ''; position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+        width: 40px; height: 8px; background: #08081a; border-radius: 4px; z-index: 2;
+      }
+      /* home indicator */
+      #bedroom-phone::after {
+        content: ''; position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+        width: 44px; height: 4px; background: rgba(255,255,255,0.16); border-radius: 2px;
+      }
+      #bedroom-phone.ringing {
+        transform: scale(1.03);
+        box-shadow:
+          0 10px 50px rgba(0,0,0,0.7),
+          0 0 38px rgba(52,199,89,0.5),
+          0 0 75px rgba(52,199,89,0.22);
+        animation: phone-ring 0.85s ease-in-out;
+      }
+      @keyframes phone-ring {
+        0%   { transform: scale(1) rotate(0deg); }
+        15%  { transform: scale(1.04) rotate(-2.5deg); }
+        35%  { transform: scale(1.04) rotate(2.5deg); }
+        55%  { transform: scale(1.04) rotate(-1.5deg); }
+        75%  { transform: scale(1.04) rotate(1.5deg); }
+        100% { transform: scale(1.03) rotate(0deg); }
+      }
+
+      #bedroom-phone-inner {
+        position: absolute; inset: 3px; background: #0d0d1c;
+        border-radius: 23px; display: flex; flex-direction: column;
+        padding-top: 24px; overflow: hidden;
+      }
+
+      /* notification banner inside decorative phone */
+      #bedroom-notif {
+        margin: 6px 7px;
+        background: rgba(26,26,44,0.96);
+        border-radius: 11px; padding: 8px 10px;
+        display: flex; align-items: center; gap: 7px;
+        opacity: 0; transform: translateY(-10px);
+        transition: opacity 0.4s ease 0.15s, transform 0.4s ease 0.15s;
+        border: 1px solid rgba(52,199,89,0.2);
+      }
+      #bedroom-phone.ringing #bedroom-notif { opacity: 1; transform: translateY(0); }
+      #bedroom-notif-app { font-size: 17px; flex-shrink: 0; }
+      #bedroom-notif-name {
+        font-family: system-ui, sans-serif; font-size: 8.5px;
+        font-weight: 700; color: #4ade80; letter-spacing: 0.02em;
+      }
+      #bedroom-notif-preview {
+        font-family: system-ui, sans-serif; font-size: 7.5px;
+        color: rgba(215,215,225,0.7); margin-top: 1px;
+      }
+
+      #bedroom-hint {
+        font-family: system-ui, sans-serif;
+        color: rgba(255,215,130,0.35); font-size: 0.67rem;
+        letter-spacing: 0.18em; text-transform: uppercase;
+        margin-top: 30px; opacity: 0; transition: opacity 0.55s ease;
+        user-select: none;
+      }
+      #bedroom-hint.visible { opacity: 1; }
+
+      /* ══════════════════════════════════════════════════
+         OPENING SCENE — Phone Chat Overlay (full-screen)
+      ══════════════════════════════════════════════════ */
+      #phone-overlay {
+        position: fixed; inset: 0; z-index: 106;
+        display: flex; flex-direction: column;
+        background: #111113;
+        transform: scale(0.2);
+        transform-origin: center center;
+        border-radius: 44px;
+        opacity: 0; pointer-events: none;
+        overflow: hidden;
+        transition:
+          transform 0.9s cubic-bezier(0.3, 0, 0.1, 1),
+          border-radius 0.9s ease,
+          opacity 0.45s ease 0.05s;
+      }
+      #phone-overlay.zoom-in { transform: scale(1); border-radius: 0; opacity: 1; }
+      #phone-overlay.revealed { pointer-events: all; }
+      #phone-overlay.fade-exit { opacity: 0; transition: opacity 0.45s ease; }
+
+      /* status bar */
+      #phone-status {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 7px 20px 3px;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 0.72rem; font-weight: 600; color: #e0e0e0;
+        background: #1c1c1e; flex-shrink: 0;
+      }
+
+      /* chat header */
+      #chat-header {
+        display: flex; align-items: center; gap: 9px;
+        padding: 8px 14px 10px;
+        background: #1c1c1e;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+        flex-shrink: 0;
+      }
+      #chat-back {
+        background: none; border: none; color: #0a84ff;
+        font-size: 1.75rem; font-weight: 300; line-height: 1;
+        cursor: pointer; padding: 0 2px;
+        font-family: system-ui, sans-serif;
+      }
+      #chat-avatar {
+        width: 38px; height: 38px; border-radius: 50%;
+        background: linear-gradient(135deg, #34c759, #25a244);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.88rem; font-weight: 700; color: #fff;
+        font-family: system-ui, sans-serif; flex-shrink: 0;
+      }
+      #chat-info { flex: 1; min-width: 0; }
+      #chat-name {
+        font-family: system-ui, sans-serif;
+        font-size: 0.95rem; font-weight: 600; color: #f2f2f7;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      #chat-active {
+        font-family: system-ui, sans-serif;
+        font-size: 0.64rem; color: #8e8e93; margin-top: 1px;
+      }
+      #chat-header-icons { color: #0a84ff; font-size: 1.1rem; letter-spacing: 0.4em; cursor: pointer; }
+
+      /* date separator */
+      #chat-date-sep {
+        text-align: center; flex-shrink: 0;
+        font-family: system-ui, sans-serif;
+        font-size: 0.63rem; font-weight: 500;
+        color: #636366; letter-spacing: 0.06em;
+        padding: 12px 0 6px;
+      }
+
+      /* messages area */
+      #chat-messages {
+        flex: 1; overflow-y: auto;
+        padding: 4px 14px 10px;
+        display: flex; flex-direction: column; gap: 5px;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+      }
+      #chat-messages::-webkit-scrollbar { display: none; }
+
+      /* bubbles */
+      .chat-bubble {
+        max-width: 72%; padding: 9px 13px;
+        border-radius: 20px;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 0.9rem; line-height: 1.45;
+        opacity: 0; word-break: break-word;
+        transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      }
+      .chat-bubble.right {
+        align-self: flex-end;
+        background: linear-gradient(135deg, #f06292, #e91e8c);
+        color: #fff;
+        border-bottom-right-radius: 5px;
+        transform: translateX(18px);
+      }
+      .chat-bubble.left {
+        align-self: flex-start;
+        background: #2c2c2e; color: #f2f2f7;
+        border-bottom-left-radius: 5px;
+        transform: translateX(-18px);
+      }
+      .chat-bubble.shown { opacity: 1; transform: translateX(0); }
+
+      /* choice buttons */
+      #chat-choices {
+        display: flex; gap: 10px;
+        padding: 11px 16px 24px;
+        background: #1c1c1e;
+        border-top: 1px solid rgba(255,255,255,0.07);
+        flex-shrink: 0;
+        opacity: 0; transform: translateY(14px); pointer-events: none;
+        transition: opacity 0.4s ease, transform 0.4s ease;
+      }
+      #chat-choices.visible { opacity: 1; transform: translateY(0); pointer-events: all; }
+      .choice-btn {
+        flex: 1; padding: 12px 8px;
+        border-radius: 14px; border: none;
+        font-family: system-ui, sans-serif;
+        font-size: 0.88rem; font-weight: 600; cursor: pointer;
+        transition: transform 0.15s ease, filter 0.15s ease;
+      }
+      .choice-btn:active { transform: scale(0.96); filter: brightness(0.88); }
+      #choice-ignore { background: #2c2c2e; color: #8e8e93; border: 1px solid #3d3d3f; }
+      #choice-reply  {
+        background: linear-gradient(135deg, #f06292, #e91e8c);
+        color: #fff; box-shadow: 0 4px 18px rgba(240,98,146,0.45);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+
+      /* ── Shake (Ignore tap) ── */
+      #phone-overlay.shake {
+        animation: phone-shake 0.5s cubic-bezier(.36,.07,.19,.97);
+      }
+      @keyframes phone-shake {
+        0%,100% { transform: translateX(0) rotate(0); }
+        10% { transform: translateX(-10px) rotate(-1.5deg); }
+        25% { transform: translateX(12px)  rotate(1.5deg); }
+        40% { transform: translateX(-14px) rotate(-1deg); }
+        55% { transform: translateX(14px)  rotate(1deg); }
+        70% { transform: translateX(-8px)  rotate(-0.5deg); }
+        85% { transform: translateX(8px)   rotate(0.5deg); }
+      }
+
+      /* ── Explosion overlay ── */
+      #explosion-overlay {
+        position: fixed; inset: 0; z-index: 310;
+        display: none; overflow: hidden;
+        background: transparent;
+        transition: background 0.55s ease;
+      }
+      #explosion-overlay.flash     { background: rgba(255,160,30,0.72); }
+      #explosion-overlay.darkening { background: rgba(0,0,0,0.97); transition: background 0.65s ease; }
+
+      .boom-particle {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        animation: boom-fly 0.85s cubic-bezier(0.15, 0, 0.85, 0.6) forwards;
+      }
+      @keyframes boom-fly {
+        0%   { transform: translate(-50%,-50%) scale(1.3); opacity: 1; }
+        70%  { opacity: 0.8; }
+        100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0); opacity: 0; }
+      }
+
+      /* ── Game-over screen ── */
+      #gameover-screen {
+        position: fixed; inset: 0; z-index: 320;
+        display: none; flex-direction: column;
+        align-items: center; justify-content: center;
+        background: #000; text-align: center; padding: 2rem;
+      }
+      #gameover-screen.visible { display: flex; }
+      #gameover-emoji  { font-size: 4rem; margin-bottom: 1rem; animation: heartbeat 1s ease-in-out infinite; }
+      #gameover-title  { color: #f2f2f7; font-family: 'Georgia', serif; font-size: clamp(1.4rem,5vw,2.2rem); letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+      #gameover-sub    { color: #636366; font-family: system-ui, sans-serif; font-size: 0.88rem; margin-bottom: 2.5rem; line-height: 1.6; }
+      #gameover-retry  {
+        padding: 0.85rem 2.5rem; border: 1px solid #3a3a3c;
+        background: #1c1c1e; color: #f2f2f7;
+        font-family: system-ui, sans-serif; font-size: 0.88rem;
+        border-radius: 12px; cursor: pointer;
+        transition: background 0.2s, transform 0.15s;
+      }
+      #gameover-retry:hover { background: #2c2c2e; transform: scale(1.04); }
+      #gameover-retry:active { transform: scale(0.97); }
+
+      /* ══════════════════════════════════════════════════
+         NARRATION SCREEN
+      ══════════════════════════════════════════════════ */
+      #narration-overlay {
+        position: fixed; inset: 0; z-index: 115;
+        display: none; flex-direction: column;
+        align-items: center; justify-content: center;
+        padding: 2.5rem 2rem;
+        background:
+          radial-gradient(ellipse 80% 45% at 50% 15%, rgba(200,80,130,0.14) 0%, transparent 65%),
+          radial-gradient(ellipse 55% 55% at 82% 82%, rgba(80,55,180,0.09) 0%, transparent 55%),
+          linear-gradient(180deg, #07030d 0%, #0a0412 60%, #060210 100%);
+        opacity: 0; transition: opacity 0.9s ease;
+        cursor: pointer; overflow: hidden;
+      }
+      #narration-overlay.visible { display: flex; opacity: 1; }
+      #narration-overlay.fade-out { opacity: 0; transition: opacity 0.7s ease; }
+
+      /* star field */
+      #narration-stars { position: absolute; inset: 0; pointer-events: none; }
+      .nstar {
+        position: absolute; border-radius: 50%;
+        background: #fff;
+        animation: nstar-twinkle linear infinite;
+      }
+      @keyframes nstar-twinkle {
+        0%,100% { opacity: 0.15; transform: scale(0.8); }
+        50%      { opacity: 0.9;  transform: scale(1.3); }
+      }
+
+      /* decorative top icon */
+      #narration-icon {
+        font-size: 1.9rem; margin-bottom: 1.8rem;
+        animation: heartbeat 2.4s ease-in-out infinite;
+        position: relative; z-index: 1;
+      }
+
+      /* paragraph text */
+      #narration-text {
+        font-family: 'Georgia', serif;
+        font-size: clamp(0.98rem, 3.2vw, 1.22rem);
+        color: #f7eeea;
+        text-align: center; line-height: 1.85;
+        max-width: 500px; white-space: pre-line;
+        letter-spacing: 0.025em;
+        text-shadow: 0 0 24px rgba(255,140,180,0.18);
+        opacity: 0; min-height: 7rem;
+        transition: opacity 0.55s ease;
+        position: relative; z-index: 1;
+      }
+      #narration-text.shown { opacity: 1; }
+
+      /* progress dots */
+      #narration-dots {
+        display: flex; gap: 8px; margin-top: 2.2rem;
+        position: relative; z-index: 1;
+      }
+      .ndot {
+        width: 6px; height: 6px; border-radius: 50%;
+        background: rgba(255,255,255,0.18);
+        transition: background 0.4s ease, transform 0.35s ease;
+        flex-shrink: 0;
+      }
+      .ndot.done   { background: rgba(255,255,255,0.42); }
+      .ndot.active { background: #f06292; transform: scale(1.45); }
+
+      /* tap hint */
+      #narration-hint {
+        font-family: system-ui, sans-serif;
+        font-size: 0.63rem; color: rgba(255,255,255,0.22);
+        letter-spacing: 0.18em; text-transform: uppercase;
+        margin-top: 2rem; position: relative; z-index: 1;
+        animation: nhint-pulse 2.8s ease-in-out infinite;
+      }
+      @keyframes nhint-pulse { 0%,100% { opacity: 0.22; } 55% { opacity: 0.55; } }
+
+      /* final continue button */
+      #narration-continue {
+        margin-top: 2rem; padding: 0.95rem 2.8rem;
+        border-radius: 40px; border: none;
+        background: linear-gradient(135deg, #f06292, #e91e8c);
+        color: #fff; font-family: 'Georgia', serif;
+        font-size: 0.95rem; letter-spacing: 0.1em;
+        cursor: pointer; display: none;
+        opacity: 0; transform: translateY(12px);
+        transition: opacity 0.5s ease, transform 0.5s ease;
+        box-shadow: 0 4px 24px rgba(240,98,146,0.45);
+        position: relative; z-index: 1;
+      }
+      #narration-continue.visible { display: block; opacity: 1; transform: translateY(0); }
+      #narration-continue:active   { transform: scale(0.97); }
+
+      /* ══════════════════════════════════════════════════
+         SM ENTRANCE STORY OVERLAY (visual-novel dialogue)
+      ══════════════════════════════════════════════════ */
+      #sm-story-overlay {
+        position: fixed; inset: 0; z-index: 350;
+        display: none; flex-direction: column;
+        align-items: center; justify-content: flex-end;
+        padding-bottom: 2.5rem;
+        background: rgba(0,0,0,0);
+        transition: background 0.5s ease;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #sm-story-overlay.visible { display: flex; }
+      #sm-story-overlay.dimmed  { background: rgba(0,0,0,0.5); }
+
+      #sm-story-box {
+        max-width: min(680px, 90vw); width: 100%;
+        background: rgba(6,10,26,0.94);
+        border: 1.5px solid rgba(80,180,255,0.28);
+        border-radius: 18px;
+        padding: 22px 26px 18px;
+        backdrop-filter: blur(12px);
+        transform: translateY(32px); opacity: 0;
+        transition: transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.4s ease;
+        box-shadow: 0 0 50px rgba(60,140,255,0.12);
+      }
+      #sm-story-overlay.dimmed #sm-story-box { transform: translateY(0); opacity: 1; }
+
+      #sm-story-speaker {
+        display: flex; align-items: center; gap: 10px;
+        margin-bottom: 10px;
+      }
+      #sm-story-icon { font-size: 1.55rem; line-height: 1; }
+      #sm-story-name {
+        font-family: system-ui, sans-serif; font-size: 0.76rem;
+        font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+        color: #7ec8ff;
+      }
+      #sm-story-text {
+        font-family: 'Georgia', serif;
+        font-size: clamp(0.9rem, 2.5vw, 1.04rem);
+        color: #ddeeff; line-height: 1.72; min-height: 54px;
+        transition: opacity 0.18s ease;
+      }
+      #sm-story-footer {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-top: 14px;
+      }
+      #sm-story-dots { display: flex; gap: 7px; align-items: center; }
+      .sm-sdot {
+        width: 6px; height: 6px; border-radius: 50%;
+        background: rgba(255,255,255,0.2);
+        transition: background 0.3s ease, transform 0.3s ease;
+      }
+      .sm-sdot.done   { background: rgba(150,210,255,0.5); }
+      .sm-sdot.active { background: #4fc3f7; transform: scale(1.5); }
+      #sm-story-hint {
+        font-family: system-ui, sans-serif; font-size: 0.64rem;
+        color: rgba(140,200,255,0.45); letter-spacing: 0.16em; text-transform: uppercase;
+        animation: sm-hint-pulse 2.5s ease-in-out infinite;
+      }
+      @keyframes sm-hint-pulse { 0%,100% { opacity: 0.4; } 55% { opacity: 0.9; } }
+
       @keyframes pulse {
         0%, 100% { opacity: 1; } 50% { opacity: 0.6; }
       }
       @keyframes heartbeat {
         0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); }
       }
+
+      /* ══════════════════════════════════════════════════
+         QUEST HUD
+      ══════════════════════════════════════════════════ */
+      #quest-hud {
+        position: fixed; top: 1.1rem; left: 50%; transform: translateX(-50%);
+        z-index: 65; display: none; flex-direction: column;
+        align-items: center; gap: 5px;
+        pointer-events: none;
+      }
+      #quest-hud.visible { display: flex; }
+
+      #quest-label {
+        background: rgba(0,0,0,0.52);
+        border: 1px solid rgba(255,220,60,0.35);
+        border-radius: 20px; padding: 5px 16px;
+        font-family: system-ui, sans-serif;
+        font-size: 0.72rem; font-weight: 600;
+        letter-spacing: 0.12em; text-transform: uppercase;
+        color: #ffdd44;
+      }
+      #quest-name {
+        font-family: 'Georgia', serif;
+        font-size: clamp(0.78rem, 2.2vw, 0.92rem);
+        color: #fff; letter-spacing: 0.06em;
+        background: rgba(0,0,0,0.44);
+        border-radius: 12px; padding: 4px 14px;
+      }
+      #quest-dist {
+        font-family: system-ui, sans-serif;
+        font-size: 0.62rem; color: rgba(255,255,255,0.55);
+        letter-spacing: 0.1em;
+      }
+
+      /* compass arrow */
+      #quest-arrow-wrap {
+        position: fixed; top: 1rem; right: 1.6rem;
+        z-index: 65; display: none;
+        flex-direction: column; align-items: center; gap: 4px;
+        pointer-events: none;
+      }
+      #quest-arrow-wrap.visible { display: flex; }
+      #quest-arrow-ring {
+        width: 56px; height: 56px; border-radius: 50%;
+        background: rgba(0,0,0,0.48);
+        border: 2px solid rgba(255,220,60,0.45);
+        display: flex; align-items: center; justify-content: center;
+      }
+      #quest-arrow-svg {
+        transition: transform 0.25s ease;
+        font-size: 1.55rem; line-height: 1;
+      }
+      #quest-arrow-label {
+        font-family: system-ui, sans-serif;
+        font-size: 0.58rem; color: rgba(255,220,60,0.75);
+        letter-spacing: 0.1em; text-transform: uppercase;
+      }
+
+      /* ══════════════════════════════════════════════════
+         WORLD TRANSITION (SM reached)
+      ══════════════════════════════════════════════════ */
+      #world-transition {
+        position: fixed; inset: 0; z-index: 400;
+        display: none; flex-direction: column;
+        align-items: center; justify-content: center;
+        background: #000; text-align: center; padding: 2rem;
+        opacity: 0; transition: opacity 0.9s ease;
+      }
+      #world-transition.visible { display: flex; }
+      #world-transition.faded   { opacity: 1; }
+
+      #wt-logo {
+        width: min(200px, 52vw);
+        background: #006633; border-radius: 14px;
+        padding: 18px 28px; margin-bottom: 2rem;
+        box-shadow: 0 0 40px rgba(0,200,80,0.25);
+      }
+      #wt-logo-text {
+        color: #fff; font-family: Arial, sans-serif;
+        font-size: clamp(2.8rem, 10vw, 4.5rem);
+        font-weight: 900; letter-spacing: 0.06em; line-height: 1;
+      }
+      #wt-logo-sub {
+        color: rgba(255,255,255,0.65);
+        font-family: Arial, sans-serif;
+        font-size: clamp(0.55rem, 2vw, 0.72rem);
+        letter-spacing: 0.22em; text-transform: uppercase;
+        margin-top: 3px;
+      }
+      #wt-title {
+        color: #f2f2f7; font-family: 'Georgia', serif;
+        font-size: clamp(1.3rem, 4.5vw, 2rem);
+        letter-spacing: 0.08em; margin-bottom: 0.7rem;
+      }
+      #wt-sub {
+        color: #8e8e93; font-family: system-ui, sans-serif;
+        font-size: clamp(0.8rem, 2.5vw, 0.95rem);
+        line-height: 1.7; max-width: 380px;
+        margin-bottom: 2.4rem;
+      }
+      #wt-dots {
+        display: flex; gap: 10px; justify-content: center;
+        animation: wt-dots-pulse 1.4s ease-in-out infinite;
+      }
+      #wt-dots span {
+        width: 8px; height: 8px; border-radius: 50%;
+        background: #006633;
+      }
+      #wt-dots span:nth-child(2) { animation-delay: 0.18s; }
+      #wt-dots span:nth-child(3) { animation-delay: 0.36s; }
+      @keyframes wt-dots-pulse {
+        0%,80%,100% { transform: scale(0.7); opacity: 0.45; }
+        40%          { transform: scale(1.2); opacity: 1; }
+      }
     </style>
   </head>
   <body>
+
+    <!-- ── Opening Scene: Bedroom ── -->
+    <div id="bedroom-overlay">
+      <div id="bedroom-glow"></div>
+      <p id="bedroom-date">April 30, 2025</p>
+      <div id="bedroom-phone">
+        <div id="bedroom-phone-inner">
+          <div id="bedroom-notif">
+            <span id="bedroom-notif-app">💬</span>
+            <div>
+              <div id="bedroom-notif-name">Moncakesss 💚</div>
+              <div id="bedroom-notif-preview">Uy haha</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p id="bedroom-hint">tap anywhere to open</p>
+    </div>
+
+    <!-- ── Opening Scene: Phone Chat Overlay ── -->
+    <div id="phone-overlay">
+      <div id="phone-status">
+        <span>10:42</span>
+        <span>▲▲ 🔋</span>
+      </div>
+      <div id="chat-header">
+        <button id="chat-back" aria-label="Back">‹</button>
+        <div id="chat-avatar">M</div>
+        <div id="chat-info">
+          <div id="chat-name">Moncakesss 💚</div>
+          <div id="chat-active">Active now</div>
+        </div>
+        <div id="chat-header-icons">📞 🎥</div>
+      </div>
+      <div id="chat-date-sep">APR 30, 2025 AT 10:42 AM</div>
+      <div id="chat-messages"></div>
+      <div id="chat-choices">
+        <button class="choice-btn" id="choice-ignore">💤 Ignore</button>
+        <button class="choice-btn" id="choice-reply">…</button>
+      </div>
+    </div>
+
+    <!-- ── Narration screen ── -->
+    <div id="narration-overlay">
+      <div id="narration-stars"></div>
+      <div id="narration-icon">💕</div>
+      <div id="narration-text"></div>
+      <div id="narration-dots"></div>
+      <div id="narration-hint">tap to continue</div>
+      <button id="narration-continue">Enter Our World 🌸</button>
+    </div>
+
+    <!-- ── Explosion overlay (Ignore path) ── -->
+    <div id="explosion-overlay"></div>
+
+    <!-- ── Game-over screen ── -->
+    <div id="gameover-screen">
+      <div id="gameover-emoji">😢</div>
+      <div id="gameover-title">Sadboy nako ngayon hahaha</div>
+      <div id="gameover-sub"></div>
+      <button id="gameover-retry">Try Again 🔄</button>
+    </div>
+
+    <!-- Rotate Prompt (portrait mobile) -->
+    <div id="rotate-prompt">
+      <div id="rotate-icon">📱</div>
+      <div id="rotate-msg">Please rotate your phone<br>to landscape mode 🌸</div>
+      <div id="rotate-sub">The world looks better sideways!</div>
+    </div>
 
     <!-- Loading -->
     <div id="loading-screen">
@@ -221,24 +914,29 @@
       <div id="start-title">Happy Anniversary</div>
       <div id="start-date">July 5 · A World Made for You</div>
       <button id="start-btn">Enter Our World</button>
+      <button id="skip-btn">Skip Intro (Dev)</button>
       <div id="start-controls" id="start-controls-desktop">
         WASD · Move &nbsp;|&nbsp; Mouse · Camera &nbsp;|&nbsp; Shift · Run<br>
         Walk near the glowing spots to discover memories 🐾
       </div>
       <div id="start-controls-mobile" style="display:none; color:#795548; font-size:0.82rem; margin-top:1.5rem; text-align:center; line-height:2; letter-spacing:0.05em;">
         Left side · Move &nbsp;|&nbsp; Right side · Look around<br>
-        Push joystick fully to run &nbsp;|&nbsp; 🐾 Follow the glowing spots
+        RUN · hold to sprint &nbsp;|&nbsp; JUMP · tap to jump &nbsp;|&nbsp; 🐾 Follow the glowing spots
       </div>
     </div>
 
     <!-- HUD -->
     <div id="hud">
       <div id="hud-title">Our World 🌸</div>
-      <div id="hud-controls">WASD · Move<br>Mouse · Camera<br>Shift · Run</div>
+      <div id="hud-controls">WASD · Move<br>Mouse · Camera<br>Shift · Run &nbsp;|&nbsp; Space · Jump</div>
     </div>
 
     <!-- Virtual Joystick (mobile) -->
     <div id="joystick-base"><div id="joystick-knob"></div></div>
+
+    <!-- Mobile action buttons (shown by JS when isMobile) -->
+    <button id="run-btn">RUN</button>
+    <button id="jump-btn">JUMP</button>
 
     <!-- Mobile swipe hint (bottom, shown before game starts on mobile) -->
     <div id="joystick-hint">
@@ -250,6 +948,45 @@
       <div id="memory-icon">💕</div>
       <div id="memory-title">Memory Title</div>
       <div id="memory-text">Memory description goes here.</div>
+    </div>
+
+    <!-- Quest HUD -->
+    <div id="quest-hud">
+      <div id="quest-label">⭐ Quest</div>
+      <div id="quest-name">Find SM Legazpi</div>
+      <div id="quest-dist"></div>
+    </div>
+    <div id="quest-arrow-wrap">
+      <div id="quest-arrow-ring">
+        <div id="quest-arrow-svg">⬆️</div>
+      </div>
+      <div id="quest-arrow-label">SM</div>
+    </div>
+
+    <!-- World Transition (SM reached) -->
+    <div id="world-transition">
+      <div id="wt-logo">
+        <div id="wt-logo-text">SM</div>
+        <div id="wt-logo-sub">Supermalls</div>
+      </div>
+      <div id="wt-title">You've arrived at SM Legazpi</div>
+      <div id="wt-sub">A new memory awaits inside...<br>Loading the next chapter 🌸</div>
+      <div id="wt-dots"><span></span><span></span><span></span></div>
+    </div>
+
+    <!-- SM Story Overlay (visual-novel dialogue triggered at entrance) -->
+    <div id="sm-story-overlay">
+      <div id="sm-story-box">
+        <div id="sm-story-speaker">
+          <span id="sm-story-icon">💖</span>
+          <span id="sm-story-name"></span>
+        </div>
+        <div id="sm-story-text"></div>
+        <div id="sm-story-footer">
+          <div id="sm-story-dots"></div>
+          <div id="sm-story-hint">tap to continue</div>
+        </div>
+      </div>
     </div>
 
     <!-- Final Anniversary Screen -->
@@ -264,11 +1001,35 @@
     </div>
 
     <script>
-      // Detect mobile and swap UI hints before the module loads
-      if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+      const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+
+      if (isMobile) {
         document.getElementById('start-controls-desktop').style.display = 'none'
         document.getElementById('start-controls-mobile').style.display  = 'block'
         document.getElementById('joystick-hint').style.display = 'block'
+
+        // Try to lock orientation to landscape (works on Android Chrome)
+        const tryLockLandscape = () => {
+          if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(() => {})
+          }
+        }
+
+        // Show/hide the rotate prompt based on orientation
+        const rotatePrompt = document.getElementById('rotate-prompt')
+        const checkOrientation = () => {
+          const isPortrait = window.innerHeight > window.innerWidth
+          rotatePrompt.classList.toggle('show', isPortrait)
+        }
+
+        // Try lock on first user interaction (required by browsers)
+        document.addEventListener('click', tryLockLandscape, { once: true })
+        document.addEventListener('touchstart', tryLockLandscape, { once: true })
+
+        window.addEventListener('resize', checkOrientation)
+        window.addEventListener('orientationchange', checkOrientation)
+        checkOrientation()
+
         // Make memory popup dismissible on tap
         document.addEventListener('DOMContentLoaded', () => {
           document.getElementById('memory-popup').addEventListener('click', () => {

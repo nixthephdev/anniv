@@ -9,6 +9,7 @@
     "deploy": "vite build && gh-pages -d dist"
   },
   "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.19.3",
     "three": "^0.177.0"
   },
   "devDependencies": {

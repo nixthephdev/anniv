@@ -62,18 +62,11 @@ export const CONFIG = {
   ],
 
   // Dog companion
-  dogName: 'Doggo',       // ← her dog's name (update when you remember!)
+  dogName: 'Bubbles',
   dogColor: 0xc68642,     // golden brown — change to match real fur color
 
   // Photo frames
   // heartShape: true → renders a glowing heart-shaped frame (no real photo needed)
   // src: 'file.jpg' → uses a real photo from /public/photos/
-  photoFrames: [
-    {
-      heartShape: true,
-      position: { x: -6, z: -36 },   // near the bench memory spot
-      label: '3PM · Legazpi Blvd 🌸',
-      // src: 'bench.jpg',             // ← uncomment + add photo when you have it
-    },
-  ],
+  photoFrames: [],
 }

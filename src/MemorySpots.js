@@ -238,10 +238,10 @@ export class MemorySpots {
     if (spot.quiz) {
       this._buildQuiz(spot.quiz)
       document.getElementById('memory-quiz').style.display = 'block'
-      contEl.textContent = 'answer to continue 😉'
+      contEl.textContent = 'sagutin mo muna 😉'
     } else {
       document.getElementById('memory-quiz').style.display = 'none'
-      contEl.textContent = 'tap or press E to continue 💕'
+      contEl.textContent = 'i-tap o pindutin ang E 💕'
     }
 
     popup.classList.add('visible')
@@ -290,7 +290,7 @@ export class MemorySpots {
       btn.classList.add('right')
       fbEl.textContent = quiz.right
       fbEl.className = 'right'
-      document.getElementById('memory-continue').textContent = 'tap or press E to continue 💕'
+      document.getElementById('memory-continue').textContent = 'i-tap o pindutin ang E 💕'
       // Don't let the answering tap also dismiss the popup
       this._popupReadyAt = performance.now() + 700
       document.dispatchEvent(new CustomEvent('quiz:correct'))

@@ -38,15 +38,15 @@ const SCRIPT = [
 
 // Each line is one paragraph — tap to advance, auto-advances after 5 s
 const NARRATION = [
-  "That conversation you just read...\nIt looks so ordinary, right?",
-  '"Uy haha." Just two words.\nI almost didn\'t even send it.',
-  "But that one message changed everything for me.",
-  "Before you came, I was already praying for you.\nNot for a name or a face — just for the feeling of someone real.\nSomeone who\'d actually stay.",
-  "And then there you were.\nJust like that.",
-  "You became my mornings, my late nights,\nevery random thought I wanted to share,\nevery song that somehow sounds like you.",
-  "I didn\'t just fall in love with you, Moncakesss.\nI made you part of my everything.\nAnd you already know that.",
-  "I\'d choose you again.\nIn every version of this story, without hesitation.",
-  "This world is yours.\n\nHappy Anniversary. 🌸",
+  "Yung usapan na binasa mo...\nMukhang ordinaryo lang, 'di ba?",
+  '"Uy haha." Dalawang salita lang.\nMuntik ko pa ngang hindi i-send.',
+  "Pero yung isang message na 'yun\nang nagpabago ng lahat para sa akin.",
+  "Bago ka pa dumating, ipinagdadasal na kita.\nHindi pangalan o mukha — kundi yung pakiramdam\nna may totoong tao. Yung hindi aalis.",
+  "Tapos bigla kang nandiyan.\nGanun lang kadali.",
+  "Naging umaga kita, naging hatinggabi,\nbawat random na naiisip na gusto kong i-kwento sa'yo,\nbawat kantang parang ikaw ang laman.",
+  "Hindi lang kita minahal, Moncakesss.\nGinawa kitang parte ng lahat-lahat sa akin.\nAt alam mo na 'yun.",
+  "Pipiliin kita ulit.\nSa bawat bersyon ng kwentong 'to,\nwalang pag-aalinlangan.",
+  "Sa'yo ang mundong ito.\n\nHappy Anniversary. 🌸",
 ]
 
 // ── Constants ─────────────────────────────────────────────────────────────

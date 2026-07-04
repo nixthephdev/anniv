@@ -23,28 +23,28 @@ import { BoyfriendNPC }  from './BoyfriendNPC.js'
 // ── Story panels ──────────────────────────────────────────────────────────
 
 const PANELS_CHASE_INTRO = [
-  { icon: '😱', name: 'You', text: 'HUY!! Bubbles just grabbed your phone and BOLTED!!' },
-  { icon: '🐕', name: 'Bubbles', text: '"WOOF." (Translation: habulin mo muna ako, Ate. 😤)' },
-  { icon: '🏃', name: 'Tip', text: 'Hold SHIFT (or the RUN button) to sprint — she\'s fast!' },
+  { icon: '😱', name: 'Ikaw', text: 'HUY!! Kinuha ni Bubbles yung phone mo tapos TUMAKBO!!' },
+  { icon: '🐕', name: 'Bubbles', text: '"WOOF." (Ibig sabihin: habulin mo muna ako, Ate. 😤)' },
+  { icon: '🏃', name: 'Tip', text: 'I-hold ang SHIFT (o yung RUN button) para tumakbo — ang bilis niya!!' },
 ]
 
 const PANELS_CHASE_DONE = [
-  { icon: '🎉', name: 'You', text: 'GOTCHA!! Phone rescued. Bubbles shows absolutely zero remorse.' },
-  { icon: '🐕', name: 'Bubbles', text: 'wag wag wag (she is very proud of herself)' },
-  { icon: '💚', name: 'Him', text: 'New message: "Punta ka sa SM Legazpi 😊 may sasabihin ako sa\'yo." — Follow the compass!' },
+  { icon: '🎉', name: 'Ikaw', text: 'HULI KA!! Nabawi na ang phone. Pero si Bubbles? Walang kahit konting pagsisisi.' },
+  { icon: '🐕', name: 'Bubbles', text: 'wag wag wag (sobrang proud siya sa sarili niya)' },
+  { icon: '💚', name: 'Siya', text: 'New message: "Punta ka sa SM Legazpi 😊 may sasabihin ako sa\'yo." — Sundan mo ang compass!' },
 ]
 
 const PANELS_SM_ARRIVAL = [
-  { icon: '💭', name: '...', text: "The entrance of SM Legazpi comes into view. Your heart beats a little faster — you know he's here somewhere." },
-  { icon: '💚', name: 'Him', text: '"Hey!! Over here!!" He pops up near the entrance, waving both arms with that big goofy smile you love.' },
-  { icon: '😱', name: 'You', text: "Before you can even reach him — someone grabs him from behind, laughing, and drags him straight inside the mall!" },
-  { icon: '🏃', name: 'You', text: '"Wait for me!!" You break into a run, pushing past the crowd, following him inside...' },
+  { icon: '💭', name: '...', text: 'Kita mo na ang entrance ng SM Legazpi. Bumibilis ang tibok ng puso mo — alam mong nandito siya, kung saan man.' },
+  { icon: '💚', name: 'Siya', text: '"Uy!! Dito!!" Sumulpot siya malapit sa entrance, kumakaway nang todo — dala yung malaking ngiting paborito mo.' },
+  { icon: '😱', name: 'Ikaw', text: 'Pero bago mo pa siya maabot — may biglang humila sa kanya mula sa likod, tawa nang tawa, kinaladkad siya papasok ng mall!' },
+  { icon: '🏃', name: 'Ikaw', text: '"Hintayin mo ako!!" Tumakbo ka, sumingit sa dami ng tao, sinundan siya papasok...' },
 ]
 
 const PANELS_CHAPTER2 = [
-  { icon: '💚', name: 'Him', text: '"HAHA gotcha!! You should\'ve seen your face 😆"' },
-  { icon: '💖', name: 'Him', text: '"Listen... before anything else — I hid our favorite memories all over this world. Every glowing light out there is one of them."' },
-  { icon: '✨', name: 'Him', text: '"Find them all, Moncakesss. I\'ll be waiting where they end. 💖"' },
+  { icon: '💚', name: 'Siya', text: '"HAHA gotcha!! Kita mo dapat yung mukha mo kanina 😆"' },
+  { icon: '💖', name: 'Siya', text: '"Teka, makinig ka muna... itinago ko ang mga paborito nating alaala sa buong mundong \'to. Bawat kumikinang na ilaw diyan, isang alaala natin."' },
+  { icon: '✨', name: 'Siya', text: '"Hanapin mo silang lahat, Moncakesss. Hihintayin kita kung saan sila nagtatapos. 💖"' },
 ]
 
 export class World {
@@ -215,13 +215,13 @@ export class World {
 
     document.addEventListener('memory:collected', e => {
       const { count, total } = e.detail
-      this._questLabel.textContent = `💖 Memories · ${count}/${total}`
+      this._questLabel.textContent = `💖 Alaala · ${count}/${total}`
       this.audio.playChime()
     })
 
     document.addEventListener('memories:complete', () => {
-      this._questLabel.textContent = '💖 Final Memory'
-      this._questName.textContent  = 'Someone is waiting for you…'
+      this._questLabel.textContent = '💖 Huling Alaala'
+      this._questName.textContent  = 'May naghihintay sa\'yo…'
       this.audio.playChime()
     })
 
@@ -246,8 +246,8 @@ export class World {
     this.dog.mode = 'flee'
     this._showStoryPanels(PANELS_CHASE_INTRO, () => {
       this._chapter = 0
-      this._questLabel.textContent = '🐕 First Mission'
-      this._questName.textContent  = 'Catch Bubbles!!'
+      this._questLabel.textContent = '🐕 Unang Misyon'
+      this._questName.textContent  = 'Habulin si Bubbles!!'
       this._arrowLabel.textContent = '🐕'
       this._questHUD.classList.add('visible')
       this._arrowWrap.classList.add('visible')
@@ -266,7 +266,7 @@ export class World {
   _startChapter1() {
     this._chapter = 1
     this._questLabel.textContent = '⭐ Quest'
-    this._questName.textContent  = 'Find SM Legazpi'
+    this._questName.textContent  = 'Puntahan ang SM Legazpi'
     this._arrowLabel.textContent = 'SM'
     this._questHUD.classList.add('visible')
     this._arrowWrap.classList.add('visible')
@@ -291,8 +291,8 @@ export class World {
 
   _startChapter2() {
     this._chapter = 2
-    this._questLabel.textContent = '💖 Memories · 0/5'
-    this._questName.textContent  = 'Relive our memories'
+    this._questLabel.textContent = '💖 Alaala · 0/5'
+    this._questName.textContent  = 'Balikan ang mga alaala natin'
     this._arrowLabel.textContent = '💖'
     this._questHUD.classList.add('visible')
     this._arrowWrap.classList.add('visible')
@@ -380,7 +380,7 @@ export class World {
     const dz   = tz - playerPos.z
     const dist = Math.sqrt(dx * dx + dz * dz)
 
-    this._questDist.textContent = `${Math.round(dist)} m away`
+    this._questDist.textContent = `${Math.round(dist)} m na lang`
 
     // World-space angle to target, minus camera yaw so the arrow is
     // relative to where she's facing (0° = forward)

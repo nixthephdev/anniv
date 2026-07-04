@@ -18,10 +18,10 @@ export class UI {
     const hudTitle = document.getElementById('hud-title')
 
     if (titleEl) titleEl.textContent = `Happy Anniversary, ${CONFIG.herName}`
-    if (dateEl)  dateEl.textContent  = `${CONFIG.anniversaryDate} · A World Made for You`
+    if (dateEl)  dateEl.textContent  = `${CONFIG.anniversaryDate} · Mundong Ginawa Para Sa'yo`
     if (finalEl) finalEl.textContent = CONFIG.finalTitle
     if (finalSubEl) finalSubEl.innerHTML = CONFIG.finalMessage.replace(/\n/g, '<br>')
-    if (hudTitle) hudTitle.textContent = `${CONFIG.herName}'s World 🌸`
+    if (hudTitle) hudTitle.textContent = `Mundo ni ${CONFIG.herName} 🌸`
   }
 
   // ── Finale ──────────────────────────────────────────────────────────────

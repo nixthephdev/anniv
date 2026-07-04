@@ -111,7 +111,7 @@ export class PhotoFrames {
     ctx.fillStyle = 'rgba(255,255,255,0.9)'
     ctx.font = 'bold 20px Georgia, serif'
     ctx.textAlign = 'center'
-    ctx.fillText('📸 Our Photo', 128, 108)
+    ctx.fillText('📸 Picture Natin', 128, 108)
     ctx.font = '14px Georgia, serif'
     ctx.fillStyle = 'rgba(255,236,240,0.8)'
     ctx.fillText('Legazpi Blvd · 3PM', 128, 140)

@@ -11,7 +11,7 @@ export const CONFIG = {
 
   // Final screen
   finalTitle: 'Happy Anniversary, Moncakesss 💖',
-  finalMessage: `Every second with you is something I never want to forget.\nThank you for being my person, My Loooove.\nHere's to forever with you. 🌸`,
+  finalMessage: `Bawat segundong kasama ka, ayaw kong makalimutan.\nSalamat sa pagiging tahanan ko, My Loooove.\nHere's to forever with you. 🌸`,
 
   // Memory spots — glowing orbs she collects in Chapter 2 (after SM Legazpi).
   // Order here = story order. The final (isFinal) spot only unlocks after
@@ -26,7 +26,7 @@ export const CONFIG = {
       id: 'sm',
       icon: '✨',
       title: 'Legazpi SM',
-      message: 'This is where we finally met in person — and the moment I saw you, everything felt different. Worth every second of the wait, Moncakesss.',
+      message: 'Dito tayo sa wakas nagkita nang personal — at noong makita kita, iba na agad ang pakiramdam ng lahat. Sulit ang bawat segundo ng paghihintay, Moncakesss.',
       position: { x: 10, z: -80 },
       quiz: {
         question: 'First message ko sa\'yo noong April 30?',
@@ -40,7 +40,7 @@ export const CONFIG = {
       id: 'blvd',
       icon: '🌅',
       title: 'Legazpi Boulevard · 3PM',
-      message: 'A walk at 3PM. Just us, the breeze, and no rush at all. I already knew I never wanted that walk to end.',
+      message: 'Lakad tayo nang 3PM. Tayong dalawa lang, yung hangin, at walang nagmamadali. Alam ko na noon pa lang — ayaw kong matapos yung lakad na \'yun.',
       position: { x: -20, z: -22 },
       quiz: {
         question: 'Anong oras tayo naglakad sa Boulevard?',
@@ -53,8 +53,8 @@ export const CONFIG = {
     {
       id: 'bench',
       icon: '🪑',
-      title: 'That Bench',
-      message: 'We sat right here. I don\'t know how long — I lost track of time completely. This spot will always mean something to me.',
+      title: 'Yung Bench Na \'Yun',
+      message: 'Dito mismo tayo umupo. Hindi ko alam kung gaano katagal — nawala talaga ako sa oras. May kahulugan sa akin ang lugar na \'to, habang-buhay.',
       position: { x: -5, z: -38 },
       quiz: {
         question: 'Gaano tayo katagal sa bench na \'yun?',
@@ -67,8 +67,8 @@ export const CONFIG = {
     {
       id: 'smile',
       icon: '😊',
-      title: 'Your Smile',
-      message: 'The first time I saw you smile in person, I forgot every word I was about to say. It\'s still my favorite view in the whole world — and I plan on seeing it every day, forever.',
+      title: 'Yung Ngiti Mo',
+      message: 'Noong una kitang nakitang ngumiti nang personal, nakalimutan ko lahat ng sasabihin ko. Hanggang ngayon, \'yun pa rin ang paborito kong view sa buong mundo — at plano kong makita \'yun araw-araw, habang-buhay.',
       position: { x: 28, z: -30 },
       quiz: {
         question: 'Ano ang paborito kong view sa buong mundo?',
@@ -81,8 +81,8 @@ export const CONFIG = {
     {
       id: 'future',
       icon: '🌠',
-      title: 'Us in the Future',
-      message: 'I can\'t wait for all the places we haven\'t been yet and all the walks we haven\'t taken. Let\'s collect them all.',
+      title: 'Tayo sa Hinaharap',
+      message: 'Excited na ako sa lahat ng lugar na hindi pa natin napupuntahan at lahat ng lakad na hindi pa natin nagagawa. Kolektahin natin silang lahat.',
       position: { x: 8, z: -50 },
       quiz: {
         question: 'Saan tayo pupunta next?',
@@ -96,7 +96,7 @@ export const CONFIG = {
       id: 'heart',
       icon: '💖',
       title: 'Happy Anniversary 💖',
-      message: 'You are my favorite feeling in the world. Happy Anniversary, Moncakesss — I love you.',
+      message: 'Ikaw ang paborito kong pakiramdam sa buong mundo. Happy Anniversary, Moncakesss — mahal na mahal kita.',
       position: { x: 0, z: -26 },
       isFinal: true,
     },
@@ -111,9 +111,9 @@ export const CONFIG = {
   // file is missing simply don't show (no ugly empty frames).
   // heartShape: true → glowing heart-shaped frame (works with no photo too)
   photoFrames: [
-    { heartShape: true, label: 'Us 💕', position: { x: -9, z: -38 } },          // beside That Bench
-    { src: 'photo1.jpg', label: 'Our first photo', position: { x: -23, z: -19 } }, // near the Boulevard
-    { src: 'photo2.jpg', label: 'My favorite one', position: { x: 25, z: -33 } },  // near Your Smile
-    { src: 'photo3.jpg', label: 'Forever mood',    position: { x: 4, z: -23 } },   // near the finale
+    { heartShape: true, label: 'Tayo 💕', position: { x: -9, z: -38 } },              // beside That Bench
+    { src: 'photo1.jpg', label: 'Unang picture natin', position: { x: -23, z: -19 } }, // near the Boulevard
+    { src: 'photo2.jpg', label: 'Paborito ko \'to',    position: { x: 25, z: -33 } },  // near Your Smile
+    { src: 'photo3.jpg', label: 'Forever tayo',        position: { x: 4, z: -23 } },   // near the finale
   ],
 }

@@ -2,10 +2,17 @@ import * as THREE from 'three'
 import { CONFIG } from './config.js'
 
 export class PhotoFrames {
-  constructor(scene) {
+  constructor(scene, terrain) {
     this.scene = scene
+    this.terrain = terrain
     this.loader = new THREE.TextureLoader()
     this._build()
+  }
+
+  // Paved zones (road + SM grounds) are flat at y=0
+  _groundY(x, z) {
+    if (z <= -48 && z >= -115) return 0
+    return this.terrain ? this.terrain.getHeightAt(x, z) : 0
   }
 
   _build() {
@@ -73,7 +80,7 @@ export class PhotoFrames {
     group.add(stand)
 
     // Positioning: hearts are centered around 0,0 after the shape, lift up
-    group.position.set(x, 3.2, z)
+    group.position.set(x, this._groundY(x, z) + 3.2, z)
     group.rotation.y = Math.atan2(-x, -z)  // face player spawn
 
     // Store for gentle pulse animation
@@ -130,7 +137,7 @@ export class PhotoFrames {
   }
 
   _loadPhoto(src) {
-    return this.loader.load(`/photos/${src}`)
+    return this.loader.load(`${import.meta.env.BASE_URL}photos/${src}`)
   }
 
   // ── Standard rectangular frame ──────────────────────────────────────────
@@ -141,8 +148,10 @@ export class PhotoFrames {
     const frameMat = new THREE.MeshStandardMaterial({ color: 0x8b0060, roughness: 0.3, metalness: 0.6 })
     group.add(new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.8, 0.08), frameMat))
 
+    // Only add the frame to the world once the photo actually loads —
+    // missing files mean no frame at all, never an empty one.
     this.loader.load(
-      `/photos/${frame.src}`,
+      `${import.meta.env.BASE_URL}photos/${frame.src}`,
       (tex) => {
         tex.colorSpace = THREE.SRGBColorSpace
         const photo = new THREE.Mesh(
@@ -151,16 +160,10 @@ export class PhotoFrames {
         )
         photo.position.z = 0.05
         group.add(photo)
+        this.scene.add(group)
       },
       undefined,
-      () => {
-        const ph = new THREE.Mesh(
-          new THREE.PlaneGeometry(2.1, 1.55),
-          new THREE.MeshBasicMaterial({ color: 0x3d0050 })
-        )
-        ph.position.z = 0.05
-        group.add(ph)
-      }
+      () => console.info(`[PhotoFrames] photos/${frame.src} not found — frame skipped`)
     )
 
     if (frame.label) {
@@ -174,9 +177,8 @@ export class PhotoFrames {
     stand.position.y = -1.5
     group.add(stand)
 
-    group.position.set(x, 1.8, z)
+    group.position.set(x, this._groundY(x, z) + 1.8, z)
     group.rotation.y = Math.atan2(x, z) + Math.PI
-    this.scene.add(group)
   }
 
   _makeLabel(text) {

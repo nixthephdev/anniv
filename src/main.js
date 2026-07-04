@@ -19,6 +19,16 @@ const tick = setInterval(() => {
 world.init().then(() => {
   clearInterval(tick)
   bar.style.width = '100%'
+
+  // Dev shortcut (?dev=...) — jump straight into the world for testing
+  if (new URLSearchParams(location.search).get('dev')) {
+    document.getElementById('loading-screen').style.display = 'none'
+    world.start()
+    world.player.locked = true
+    document.dispatchEvent(new CustomEvent('game:start'))
+    return
+  }
+
   setTimeout(() => {
     document.getElementById('loading-screen').classList.add('fade-out')
     setTimeout(() => {

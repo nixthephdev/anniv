@@ -20,6 +20,21 @@ import { Cars }           from './Cars.js'
 import { Physics }        from './Physics.js'
 import { BoyfriendNPC }  from './BoyfriendNPC.js'
 
+// ── Story panels ──────────────────────────────────────────────────────────
+
+const PANELS_SM_ARRIVAL = [
+  { icon: '💭', name: '...', text: "The entrance of SM Legazpi comes into view. Your heart beats a little faster — you know he's here somewhere." },
+  { icon: '💚', name: 'Him', text: '"Hey!! Over here!!" He pops up near the entrance, waving both arms with that big goofy smile you love.' },
+  { icon: '😱', name: 'You', text: "Before you can even reach him — someone grabs him from behind, laughing, and drags him straight inside the mall!" },
+  { icon: '🏃', name: 'You', text: '"Wait for me!!" You break into a run, pushing past the crowd, following him inside...' },
+]
+
+const PANELS_CHAPTER2 = [
+  { icon: '💚', name: 'Him', text: '"HAHA gotcha!! You should\'ve seen your face 😆"' },
+  { icon: '💖', name: 'Him', text: '"Listen... before anything else — I hid our favorite memories all over this world. Every glowing light out there is one of them."' },
+  { icon: '✨', name: 'Him', text: '"Find them all, Moncakesss. I\'ll be waiting where they end. 💖"' },
+]
+
 export class World {
   constructor(canvas) {
     this.canvas = canvas
@@ -126,8 +141,8 @@ export class World {
     this.terrain     = new Terrain(this.scene)
     this.sky         = new Sky(this.scene)
     this.particles   = new Particles(this.scene)
-    this.memorySpots = new MemorySpots(this.scene)
-    this.photoFrames = new PhotoFrames(this.scene)
+    this.memorySpots = new MemorySpots(this.scene, this.terrain)
+    this.photoFrames = new PhotoFrames(this.scene, this.terrain)
     this.smBuilding  = new SMBuilding(this.scene)
     this.terminal    = new Terminal(this.scene)
     this.roads       = new Roads(this.scene)
@@ -139,7 +154,7 @@ export class World {
     this.boyfriendNPC = new BoyfriendNPC(this.scene, this.terrain)
 
     this._setupQuestHUD()
-    this._setupSMTransition()
+    this._setupChapterFlow()
     this._setupPostProcessing()
 
     // Physics — async WASM init; player falls back to terrain-height until ready
@@ -155,43 +170,88 @@ export class World {
     await new Promise(r => setTimeout(r, 600))
   }
 
+  // ── Quest HUD ───────────────────────────────────────────────────────────
+
   _setupQuestHUD() {
     this._questHUD   = document.getElementById('quest-hud')
+    this._questLabel = document.getElementById('quest-label')
+    this._questName  = document.getElementById('quest-name')
     this._questDist  = document.getElementById('quest-dist')
     this._arrowWrap  = document.getElementById('quest-arrow-wrap')
     this._arrowSVG   = document.getElementById('quest-arrow-svg')
-    this._questDone  = false
+    this._arrowLabel = document.getElementById('quest-arrow-label')
+    this._chapter    = 1
 
     document.addEventListener('game:start', () => {
       this._questHUD.classList.add('visible')
       this._arrowWrap.classList.add('visible')
     })
-  }
 
-  _setupSMTransition() {
-    document.addEventListener('quest:sm_reached', () => {
-      this._questDone = true
+    document.addEventListener('memory:collected', e => {
+      const { count, total } = e.detail
+      this._questLabel.textContent = `💖 Memories · ${count}/${total}`
+      this.audio.playChime()
+    })
+
+    document.addEventListener('memories:complete', () => {
+      this._questLabel.textContent = '💖 Final Memory'
+      this._questName.textContent  = 'Someone is waiting for you…'
+      this.audio.playChime()
+    })
+
+    document.addEventListener('finale:reached', () => {
+      this._chapter = 3   // done — compass off
       this._questHUD.classList.remove('visible')
       this._arrowWrap.classList.remove('visible')
-      this._showSMStory()
     })
   }
 
-  _showSMStory() {
-    const PANELS = [
-      { icon: '💭', name: '...', text: "The entrance of SM Legazpi comes into view. Your heart beats a little faster — you know he's here somewhere." },
-      { icon: '💚', name: 'Him', text: '"Hey!! Over here!!" He pops up near the entrance, waving both arms with that big goofy smile you love.' },
-      { icon: '😱', name: 'You', text: "Before you can even reach him — someone grabs him from behind, laughing, and drags him straight inside the mall!" },
-      { icon: '🏃', name: 'You', text: '"Wait for me!!" You break into a run, pushing past the crowd, following him inside...' },
-    ]
+  // ── Chapter flow: SM arrival → transition → Chapter 2 ──────────────────
 
+  _setupChapterFlow() {
+    document.addEventListener('quest:sm_reached', () => {
+      this._questHUD.classList.remove('visible')
+      this._arrowWrap.classList.remove('visible')
+      this._showStoryPanels(PANELS_SM_ARRIVAL, () => this._playSMTransition())
+    })
+  }
+
+  _playSMTransition() {
+    const el = document.getElementById('world-transition')
+    el.classList.add('visible')
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => el.classList.add('faded'))
+    )
+
+    // Hold the SM screen for a beat, fade it out, then open Chapter 2
+    setTimeout(() => {
+      el.classList.remove('faded')      // opacity → 0 (0.9s CSS transition)
+      setTimeout(() => {
+        el.classList.remove('visible')  // display: none
+        this._showStoryPanels(PANELS_CHAPTER2, () => this._startChapter2())
+      }, 950)
+    }, 2600)
+  }
+
+  _startChapter2() {
+    this._chapter = 2
+    this._questLabel.textContent = '💖 Memories · 0/5'
+    this._questName.textContent  = 'Relive our memories'
+    this._arrowLabel.textContent = '💖'
+    this._questHUD.classList.add('visible')
+    this._arrowWrap.classList.add('visible')
+    document.dispatchEvent(new CustomEvent('chapter2:start'))
+  }
+
+  /** Generic visual-novel dialogue sequence over the sm-story overlay. */
+  _showStoryPanels(panels, onDone) {
     const overlay = document.getElementById('sm-story-overlay')
     const iconEl  = document.getElementById('sm-story-icon')
     const nameEl  = document.getElementById('sm-story-name')
     const textEl  = document.getElementById('sm-story-text')
     const dotsEl  = document.getElementById('sm-story-dots')
 
-    dotsEl.innerHTML = PANELS.map((_, i) => `<div class="sm-sdot" data-i="${i}"></div>`).join('')
+    dotsEl.innerHTML = panels.map((_, i) => `<div class="sm-sdot" data-i="${i}"></div>`).join('')
     const dotEls = dotsEl.querySelectorAll('.sm-sdot')
 
     let idx = 0
@@ -204,9 +264,9 @@ export class World {
     }
 
     const showPanel = () => {
-      iconEl.textContent = PANELS[idx].icon
-      nameEl.textContent = PANELS[idx].name
-      textEl.textContent = PANELS[idx].text
+      iconEl.textContent = panels[idx].icon
+      nameEl.textContent = panels[idx].name
+      textEl.textContent = panels[idx].text
       textEl.style.opacity = '1'
       refreshDots()
     }
@@ -216,12 +276,12 @@ export class World {
       transitioning = true
 
       idx++
-      if (idx >= PANELS.length) {
+      if (idx >= panels.length) {
         overlay.classList.remove('dimmed')
         overlay.removeEventListener('click', advance)
         setTimeout(() => {
           overlay.classList.remove('visible')
-          this._showSMTransition()
+          if (onDone) onDone()
         }, 500)
         return
       }
@@ -241,38 +301,71 @@ export class World {
     }))
   }
 
-  _showSMTransition() {
-    const el = document.getElementById('world-transition')
-    el.classList.add('visible')
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => el.classList.add('faded'))
-    )
-  }
+  // ── Compass ─────────────────────────────────────────────────────────────
 
   _updateQuestCompass(playerPos, cameraYaw) {
-    if (this._questDone) return
+    let tx, tz
+    if (this._chapter === 1) {
+      tx = SM_POSITION.x
+      tz = SM_POSITION.z
+    } else if (this._chapter === 2) {
+      const target = this.memorySpots.getCompassTarget(playerPos)
+      if (!target) return
+      tx = target.x
+      tz = target.z
+    } else {
+      return
+    }
 
-    const dx   = SM_POSITION.x - playerPos.x
-    const dz   = SM_POSITION.z - playerPos.z
+    const dx   = tx - playerPos.x
+    const dz   = tz - playerPos.z
     const dist = Math.sqrt(dx * dx + dz * dz)
 
-    // Distance label
-    this._questDist.textContent = dist > 1000
-      ? `${(dist / 1000).toFixed(1)} km`
-      : `${Math.round(dist)} m away`
+    this._questDist.textContent = `${Math.round(dist)} m away`
 
-    // World-space angle to SM, then subtract player's camera yaw so arrow
-    // is relative to where she's facing (0° = forward)
-    const worldAngle  = Math.atan2(dx, -dz)          // angle in world XZ
-    const relAngle    = worldAngle - cameraYaw        // relative to camera
-    const deg         = relAngle * (180 / Math.PI)
+    // World-space angle to target, minus camera yaw so the arrow is
+    // relative to where she's facing (0° = forward)
+    const worldAngle = Math.atan2(dx, -dz)
+    const relAngle   = worldAngle - cameraYaw
+    const deg        = relAngle * (180 / Math.PI)
 
     this._arrowSVG.style.transform = `rotate(${deg}deg)`
   }
 
   start() {
     this.clock.start()
+    this._applyDevShortcuts()
     this._loop()
+  }
+
+  // Hidden testing shortcuts: ?dev=sm | ?dev=ch2 | ?dev=final
+  _applyDevShortcuts() {
+    const dev = new URLSearchParams(location.search).get('dev')
+    if (!dev) return
+    const tp = (x, z) => {
+      this.player.pos.set(x, 0.5, z)
+      this.player._physCollider?.setTranslation({ x, y: 2, z })
+    }
+    if (dev === 'sm') tp(0, -70)
+    if (dev === 'ch2') {
+      this.smBuilding.arrived = true
+      this._startChapter2()
+      tp(0, -70)
+    }
+    if (dev === 'final') {
+      this.smBuilding.arrived = true
+      this._startChapter2()
+      this.memorySpots.orbs.forEach(g => {
+        if (!g.userData.isFinal) {
+          g.userData.visited = true
+          this.memorySpots._markCollected(g)
+        }
+      })
+      tp(0, -29)
+    }
+    if (dev === 'end') {
+      setTimeout(() => document.dispatchEvent(new CustomEvent('finale:reached')), 1500)
+    }
   }
 
   _loop() {
@@ -289,6 +382,7 @@ export class World {
     this.sky.update(elapsed)
     this.smBuilding.update(elapsed, this.player.getPosition())
     this.cars.update(delta)
+    this.boyfriendNPC.update(delta, this.player.getPosition())
     this._updateQuestCompass(this.player.getPosition(), this.player.cameraYaw)
 
     if (this.physics?.world) this.physics.step()

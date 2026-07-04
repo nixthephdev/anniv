@@ -116,30 +116,49 @@
       }
       #memory-popup.visible {
         opacity: 1; transform: translateX(-50%) translateY(0);
+        pointer-events: auto;   /* the card is the tap target on mobile */
       }
       #memory-icon { font-size: 2rem; margin-bottom: 0.5rem; }
       #memory-title { color: #c2185b; font-size: 1.1rem; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
       #memory-text { color: #5d3a1a; font-size: 0.9rem; line-height: 1.6; opacity: 0.9; }
+      #memory-continue {
+        margin-top: 0.9rem; font-family: system-ui, sans-serif;
+        font-size: 0.62rem; color: rgba(194,24,91,0.55);
+        letter-spacing: 0.16em; text-transform: uppercase;
+        animation: nhint-pulse 2.6s ease-in-out infinite;
+      }
 
-      /* ── Final Message ── */
+      /* ── Final Message — night celebration ── */
       #final-screen {
         position: fixed; inset: 0;
-        background: rgba(255, 248, 235, 0.97);
+        background:
+          radial-gradient(ellipse 75% 55% at 50% 28%, rgba(150,50,110,0.35) 0%, transparent 65%),
+          linear-gradient(180deg, #150822 0%, #1e0b30 55%, #0d0418 100%);
         display: none; flex-direction: column;
         align-items: center; justify-content: center;
-        z-index: 80; backdrop-filter: blur(8px);
+        z-index: 80;
         padding: 2rem; text-align: center;
       }
       #final-screen.visible { display: flex; }
-      #final-heart { font-size: 4rem; margin-bottom: 1rem; animation: heartbeat 1s ease-in-out infinite; }
+      #final-fx {
+        position: absolute; inset: 0; width: 100%; height: 100%;
+        pointer-events: none;
+      }
+      #final-heart {
+        font-size: 4rem; margin-bottom: 1rem;
+        animation: heartbeat 1s ease-in-out infinite;
+        position: relative; z-index: 1;
+      }
       #final-message {
-        color: #6d3b1e; font-size: clamp(1.4rem, 4vw, 2.2rem);
+        color: #ffeef5; font-size: clamp(1.4rem, 4vw, 2.2rem);
         letter-spacing: 0.08em; line-height: 1.5; margin-bottom: 1rem;
-        text-shadow: 0 2px 10px rgba(255,180,80,0.3);
+        text-shadow: 0 0 24px rgba(255,105,180,0.45);
+        position: relative; z-index: 1;
       }
       #final-sub {
-        color: #5d4037; font-size: clamp(0.9rem, 2vw, 1.1rem);
-        opacity: 0.85; line-height: 1.7; max-width: 500px;
+        color: #eccde0; font-size: clamp(0.9rem, 2vw, 1.1rem);
+        opacity: 0.9; line-height: 1.7; max-width: 500px;
+        position: relative; z-index: 1;
       }
       #final-close {
         margin-top: 2.5rem; padding: 0.8rem 2.5rem; font-size: 0.9rem;
@@ -147,6 +166,7 @@
         background: linear-gradient(135deg, #f06292, #e91e8c);
         border: none; border-radius: 40px; cursor: pointer;
         box-shadow: 0 4px 20px rgba(240,98,146,0.4); transition: all 0.3s;
+        position: relative; z-index: 1;
       }
       #final-close:hover { transform: scale(1.05); box-shadow: 0 6px 30px rgba(240,98,146,0.6); }
 
@@ -829,7 +849,7 @@
         40%          { transform: scale(1.2); opacity: 1; }
       }
     </style>
-    <script type="module" crossorigin src="/anniv/assets/index-oVzTUd8r.js"></script>
+    <script type="module" crossorigin src="/anniv/assets/index-DbDj7yTk.js"></script>
   </head>
   <body>
 
@@ -918,11 +938,11 @@
       <button id="skip-btn">Skip Intro (Dev)</button>
       <div id="start-controls" id="start-controls-desktop">
         WASD · Move &nbsp;|&nbsp; Mouse · Camera &nbsp;|&nbsp; Shift · Run<br>
-        Walk near the glowing spots to discover memories 🐾
+        Follow the compass — someone is waiting for you 💚
       </div>
       <div id="start-controls-mobile" style="display:none; color:#795548; font-size:0.82rem; margin-top:1.5rem; text-align:center; line-height:2; letter-spacing:0.05em;">
         Left side · Move &nbsp;|&nbsp; Right side · Look around<br>
-        RUN · hold to sprint &nbsp;|&nbsp; JUMP · tap to jump &nbsp;|&nbsp; 🐾 Follow the glowing spots
+        RUN · hold to sprint &nbsp;|&nbsp; JUMP · tap to jump &nbsp;|&nbsp; 💚 Follow the compass
       </div>
     </div>
 
@@ -949,6 +969,7 @@
       <div id="memory-icon">💕</div>
       <div id="memory-title">Memory Title</div>
       <div id="memory-text">Memory description goes here.</div>
+      <div id="memory-continue">tap or press E to continue 💕</div>
     </div>
 
     <!-- Quest HUD -->
@@ -992,6 +1013,7 @@
 
     <!-- Final Anniversary Screen -->
     <div id="final-screen">
+      <canvas id="final-fx"></canvas>
       <div id="final-heart">💖</div>
       <div id="final-message">Happy Anniversary, My Love</div>
       <div id="final-sub">
@@ -1030,14 +1052,8 @@
         window.addEventListener('resize', checkOrientation)
         window.addEventListener('orientationchange', checkOrientation)
         checkOrientation()
-
-        // Make memory popup dismissible on tap
-        document.addEventListener('DOMContentLoaded', () => {
-          document.getElementById('memory-popup').addEventListener('click', () => {
-            document.getElementById('memory-popup').classList.remove('visible')
-          })
-        })
+        // (memory popup dismissal is handled by MemorySpots.js)
       }
-    </script>
+    </script>
   </body>
 </html>

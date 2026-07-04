@@ -50,7 +50,7 @@ export class UI {
       document.getElementById('hud').classList.add('visible')
       this._stopFX()
       const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0
-      if (!isTouch) document.querySelector('canvas')?.requestPointerLock()
+      if (!isTouch) document.getElementById('game-canvas')?.requestPointerLock()
     })
   }
 

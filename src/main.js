@@ -3,6 +3,7 @@ import { World }        from './World.js'
 import { OpeningScene } from './OpeningScene.js'
 
 const canvas = document.createElement('canvas')
+canvas.id = 'game-canvas'   // NOT querySelector('canvas') — #final-fx exists too
 document.body.appendChild(canvas)
 
 const world   = new World(canvas)

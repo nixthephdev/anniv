@@ -65,7 +65,26 @@ export class BoyfriendNPC {
     this._group.add(model)
     this._scene.add(this._group)
 
-    console.info('[BoyfriendNPC] Waiting at the final memory spot')
+    // Find arm bones so he doesn't T-pose — left arm down, right arm waving
+    this._bones = {}
+    model.traverse(obj => {
+      const n = obj.name
+      if (n.endsWith('J_Bip_L_UpperArm')) this._bones.leftArm  = obj
+      if (n.endsWith('J_Bip_R_UpperArm')) this._bones.rightArm = obj
+      if (n.endsWith('J_Bip_R_LowerArm')) this._bones.rightFore = obj
+    })
+    this._rest = {}
+    for (const [k, b] of Object.entries(this._bones)) this._rest[k] = b.quaternion.clone()
+
+    console.info('[BoyfriendNPC] Waiting at the final memory spot, bones:', Object.keys(this._bones))
+  }
+
+  _pose(key, x, y, z) {
+    const b = this._bones?.[key], r = this._rest?.[key]
+    if (!b || !r) return
+    b.quaternion.copy(r).multiply(
+      new THREE.Quaternion().setFromEuler(new THREE.Euler(x, y, z))
+    )
   }
 
   update(delta, playerPos) {
@@ -74,6 +93,11 @@ export class BoyfriendNPC {
 
     // Gentle idle bob
     this._group.position.y = this._baseY + Math.sin(this._time * 2.2) * 0.03
+
+    // Left arm hangs; right arm raised, waving hello
+    this._pose('leftArm', 0, 0, -1.15)
+    this._pose('rightArm', 0, 0, 2.4 + Math.sin(this._time * 6) * 0.18)
+    this._pose('rightFore', 0, 0, 0.5 + Math.sin(this._time * 6) * 0.35)
 
     // Turn smoothly to face her (VRoid model faces -Z, so add PI)
     const dx = playerPos.x - this._group.position.x

@@ -935,7 +935,7 @@
       <div id="start-date">July 5 · A World Made for You</div>
       <button id="start-btn">Enter Our World</button>
       <button id="skip-btn">Skip Intro (Dev)</button>
-      <div id="start-controls" id="start-controls-desktop">
+      <div id="start-controls">
         WASD · Move &nbsp;|&nbsp; Mouse · Camera &nbsp;|&nbsp; Shift · Run<br>
         Follow the compass — someone is waiting for you 💚
       </div>
@@ -1026,7 +1026,7 @@
       const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0
 
       if (isMobile) {
-        document.getElementById('start-controls-desktop').style.display = 'none'
+        document.getElementById('start-controls').style.display = 'none'
         document.getElementById('start-controls-mobile').style.display  = 'block'
         document.getElementById('joystick-hint').style.display = 'block'
 

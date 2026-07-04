@@ -194,12 +194,12 @@ export class Player {
     if (!this.isGrounded) {
       this._off('leftThigh',  -0.4, 0, 0); this._off('rightThigh', -0.4, 0, 0)
       this._off('leftShin',    0.5, 0, 0); this._off('rightShin',   0.5, 0, 0)
-      this._off('leftArm',  -0.4, 0, -0.4); this._off('rightArm', -0.4, 0, 0.4)
+      this._off('leftArm',  -0.4, 0, -0.8); this._off('rightArm', -0.4, 0, 0.8)
       return
     }
 
     if (this.isMoving) {
-      const mag   = this.isRunning ? 0.7 : 0.5
+      const mag   = this.isRunning ? 0.75 : 0.55
       const swing = Math.sin(this.walkCycle) * mag
 
       // Legs: X-axis swing forward/back
@@ -208,9 +208,9 @@ export class Player {
       // Knee bend: trail leg curls
       this._off('leftShin',  Math.max(0, -swing) * 0.65, 0, 0)
       this._off('rightShin', Math.max(0,  swing) * 0.65, 0, 0)
-      // Arms: A-pose (Z offset) + counter-swing (X offset)
-      this._off('leftArm',  -swing * 0.38, 0, -0.4)
-      this._off('rightArm',  swing * 0.38, 0,  0.4)
+      // Arms: hang at sides (Z offset from T-pose) + counter-swing (X offset)
+      this._off('leftArm',  -swing * 0.45, 0, -1.15)
+      this._off('rightArm',  swing * 0.45, 0,  1.15)
 
       if (b.hips && r.hips) {
         b.hips.quaternion.copy(r.hips).multiply(
@@ -223,9 +223,10 @@ export class Player {
         )
       }
     } else {
-      // Idle: arms in A-pose; damp limbs back toward rest
-      this._off('leftArm',  0, 0, -0.4)
-      this._off('rightArm', 0, 0,  0.4)
+      // Idle: arms hang at sides with a gentle breathing sway
+      const breathe = Math.sin(this.walkCycle * 0.6) * 0.04
+      this._off('leftArm',  0, 0, -1.15 + breathe)
+      this._off('rightArm', 0, 0,  1.15 - breathe)
 
       const slerp = key => { if (b[key] && r[key]) b[key].quaternion.slerp(r[key], 0.12) }
       slerp('leftThigh'); slerp('rightThigh')
@@ -298,7 +299,7 @@ export class Player {
         this.locked = true
         document.getElementById('joystick-hint').style.display = 'none'
       } else {
-        document.querySelector('canvas').requestPointerLock()
+        document.getElementById('game-canvas').requestPointerLock()
       }
     })
   }
@@ -306,7 +307,7 @@ export class Player {
   // ── Desktop: pointer lock + keyboard ──────────────────────────────────
 
   _setupPointerLock() {
-    const canvas = document.querySelector('canvas')
+    const canvas = document.getElementById('game-canvas')
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === canvas
       document.getElementById('hud').classList.toggle('visible', this.locked)
@@ -338,7 +339,7 @@ export class Player {
   // ── Mobile: virtual joystick + camera drag ────────────────────────────
 
   _setupTouchControls() {
-    const canvas = document.querySelector('canvas')
+    const canvas = document.getElementById('game-canvas')
     const base   = document.getElementById('joystick-base')
     const knob   = document.getElementById('joystick-knob')
 

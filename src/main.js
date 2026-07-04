@@ -8,6 +8,7 @@ document.body.appendChild(canvas)
 
 const world   = new World(canvas)
 const opening = new OpeningScene()
+window.__world = world   // test/debug hook
 
 // ── Loading progress ────────────────────────────────────────────────────
 const bar = document.getElementById('loading-bar')

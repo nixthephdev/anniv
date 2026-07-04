@@ -204,7 +204,7 @@ export class Terrain {
 
   _buildTrees() {
     const rng = rngFrom(42)
-    const count = MOBILE ? 55 : 90
+    const count = MOBILE ? 32 : 90   // draw calls are the mobile bottleneck
 
     for (let i = 0; i < count; i++) {
       const angle = rng() * Math.PI * 2
@@ -234,17 +234,19 @@ export class Terrain {
     trunk.castShadow = true
     group.add(trunk)
 
-    // Root flares (2-3 thick base fins)
-    const flareMat = this._getBarkMat()
-    for (let f = 0; f < 3; f++) {
-      const fa = (f / 3) * Math.PI * 2
-      const flare = new THREE.Mesh(
-        new THREE.BoxGeometry(0.18, 0.5, 0.08),
-        flareMat
-      )
-      flare.position.set(Math.cos(fa) * 0.22, 0.25, Math.sin(fa) * 0.22)
-      flare.rotation.y = fa
-      group.add(flare)
+    // Root flares (2-3 thick base fins) — desktop only, they're pure detail
+    if (!MOBILE) {
+      const flareMat = this._getBarkMat()
+      for (let f = 0; f < 3; f++) {
+        const fa = (f / 3) * Math.PI * 2
+        const flare = new THREE.Mesh(
+          new THREE.BoxGeometry(0.18, 0.5, 0.08),
+          flareMat
+        )
+        flare.position.set(Math.cos(fa) * 0.22, 0.25, Math.sin(fa) * 0.22)
+        flare.rotation.y = fa
+        group.add(flare)
+      }
     }
 
     // ── Foliage: 1 main + 4-7 satellite blobs ──
@@ -266,8 +268,8 @@ export class Terrain {
     main.castShadow = true
     group.add(main)
 
-    // Satellite blobs
-    const blobCount = 4 + Math.floor(rng() * 5)
+    // Satellite blobs — fewer on mobile (each blob is a draw call)
+    const blobCount = MOBILE ? 2 : 4 + Math.floor(rng() * 5)
     for (let b = 0; b < blobCount; b++) {
       const ba = (b / blobCount) * Math.PI * 2 + rng() * 0.6
       const bd = baseR * (0.4 + rng() * 0.65)

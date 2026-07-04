@@ -4,6 +4,7 @@ import { toon } from './toon.js'
 
 const WALK_SPEED = 3.5
 const RUN_SPEED  = 6.5
+const FLEE_SPEED = 6.8   // faster than her walk (5), slower than her run (9)
 const FOLLOW_MIN = 2.2
 const FOLLOW_MAX = 3.5
 
@@ -17,6 +18,7 @@ export class Dog {
     this.walkCycle = 0
     this.isMoving  = false
     this.idleTimer = 0
+    this.mode      = 'follow'   // 'follow' | 'flee' (chase mission)
 
     this.group = new THREE.Group()
     this._buildModel()
@@ -241,6 +243,15 @@ export class Dog {
   // ── Per-frame update ───────────────────────────────────────────────────
 
   update(delta, playerPos) {
+    if (this.mode === 'flee') {
+      this._updateFlee(delta, playerPos)
+      this.pos.y = this.terrain.getHeightAt(this.pos.x, this.pos.z)
+      this.group.position.set(this.pos.x, this.pos.y + 0.5, this.pos.z)
+      this.group.rotation.y = this.rotY
+      this._animate()
+      return
+    }
+
     const toPlayer = new THREE.Vector3().subVectors(playerPos, this.pos)
     toPlayer.y = 0
     const dist = toPlayer.length()
@@ -268,6 +279,45 @@ export class Dog {
     this.group.rotation.y = this.rotY
 
     this._animate()
+  }
+
+  // Chase mission: run away when she gets close, taunt-trot otherwise.
+  // Stays inside the park (never onto the road) so she can always corner her.
+  _updateFlee(delta, playerPos) {
+    const away = new THREE.Vector3().subVectors(this.pos, playerPos)
+    away.y = 0
+    const dist = away.length()
+
+    let dir, speed
+    if (dist < 11) {
+      dir = away.normalize()
+      speed = FLEE_SPEED
+      // Steer along the boundary instead of getting pinned in a corner
+      const nextX = this.pos.x + dir.x * speed * delta * 10
+      const nextZ = this.pos.z + dir.z * speed * delta * 10
+      if (nextX < -36 || nextX > 36) dir.set(0, 0, Math.sign(dir.z || 1)).normalize()
+      if (nextZ < -36 || nextZ > 20) dir.set(Math.sign(dir.x || 1), 0, 0).normalize()
+    } else {
+      // Trot in a lazy circle, taunting
+      const t = Date.now() * 0.0004
+      const target = new THREE.Vector3(Math.cos(t) * 16, 0, Math.sin(t) * 12 - 8)
+      dir = target.sub(this.pos)
+      dir.y = 0
+      if (dir.lengthSq() < 2) {
+        this.isMoving = false
+        this.idleTimer += delta
+        return
+      }
+      dir.normalize()
+      speed = WALK_SPEED
+    }
+
+    this.isMoving = true
+    this.idleTimer = 0
+    this.pos.x = Math.max(-36, Math.min(36, this.pos.x + dir.x * speed * delta))
+    this.pos.z = Math.max(-36, Math.min(20,  this.pos.z + dir.z * speed * delta))
+    this.rotY = Math.atan2(dir.x, dir.z)
+    this.walkCycle += delta * speed * 3.5
   }
 
   _animate() {

@@ -22,6 +22,18 @@ import { BoyfriendNPC }  from './BoyfriendNPC.js'
 
 // ── Story panels ──────────────────────────────────────────────────────────
 
+const PANELS_CHASE_INTRO = [
+  { icon: '😱', name: 'You', text: 'HUY!! Bubbles just grabbed your phone and BOLTED!!' },
+  { icon: '🐕', name: 'Bubbles', text: '"WOOF." (Translation: habulin mo muna ako, Ate. 😤)' },
+  { icon: '🏃', name: 'Tip', text: 'Hold SHIFT (or the RUN button) to sprint — she\'s fast!' },
+]
+
+const PANELS_CHASE_DONE = [
+  { icon: '🎉', name: 'You', text: 'GOTCHA!! Phone rescued. Bubbles shows absolutely zero remorse.' },
+  { icon: '🐕', name: 'Bubbles', text: 'wag wag wag (she is very proud of herself)' },
+  { icon: '💚', name: 'Him', text: 'New message: "Punta ka sa SM Legazpi 😊 may sasabihin ako sa\'yo." — Follow the compass!' },
+]
+
 const PANELS_SM_ARRIVAL = [
   { icon: '💭', name: '...', text: "The entrance of SM Legazpi comes into view. Your heart beats a little faster — you know he's here somewhere." },
   { icon: '💚', name: 'Him', text: '"Hey!! Over here!!" He pops up near the entrance, waving both arms with that big goofy smile you love.' },
@@ -50,10 +62,12 @@ export class World {
       antialias: !isMobile,   // antialias costs on mobile
     })
     this.renderer.setPixelRatio(isMobile
-      ? Math.min(window.devicePixelRatio, 1.5)
+      ? Math.min(window.devicePixelRatio, 1.25)
       : Math.min(window.devicePixelRatio, 2))
     this.renderer.setSize(window.innerWidth, window.innerHeight)
-    this.renderer.shadowMap.enabled = true
+    // Shadows double every draw call (extra depth pass) — desktop only.
+    // The toon art style holds up fine without them on phones.
+    this.renderer.shadowMap.enabled = !isMobile
     this.renderer.shadowMap.type    = THREE.PCFSoftShadowMap
     this.renderer.toneMapping       = THREE.ACESFilmicToneMapping
     this.renderer.toneMappingExposure = 1.0
@@ -69,10 +83,12 @@ export class World {
 
   _setupScene() {
     this.scene = new THREE.Scene()
-    // Soft sky-blue fog — toon palette
-    this.scene.fog = new THREE.FogExp2(0xb8d8f5, 0.0055)
+    // Soft sky-blue fog — denser on mobile so the shorter draw distance
+    // fades out gracefully instead of popping
+    this.scene.fog = new THREE.FogExp2(0xb8d8f5, isMobile ? 0.009 : 0.0055)
 
-    this.camera = new THREE.PerspectiveCamera(68, window.innerWidth / window.innerHeight, 0.1, 280)
+    const far = isMobile ? 170 : 280
+    this.camera = new THREE.PerspectiveCamera(68, window.innerWidth / window.innerHeight, 0.1, far)
     this.camera.position.set(0, 5, 15)
   }
 
@@ -107,6 +123,13 @@ export class World {
   }
 
   _setupPostProcessing() {
+    // Mobile: skip the composer entirely — it renders to an offscreen target
+    // and copies to screen, a full extra fullscreen pass phones can't afford
+    if (isMobile) {
+      this.composer = null
+      return
+    }
+
     const size = new THREE.Vector2(window.innerWidth, window.innerHeight)
     this.composer = new EffectComposer(this.renderer)
     this.composer.addPass(new RenderPass(this.scene, this.camera))
@@ -180,12 +203,15 @@ export class World {
     this._arrowWrap  = document.getElementById('quest-arrow-wrap')
     this._arrowSVG   = document.getElementById('quest-arrow-svg')
     this._arrowLabel = document.getElementById('quest-arrow-label')
-    this._chapter    = 1
+    this._chapter    = -1   // -1 = story/idle, 0 = chase, 1 = find SM, 2 = memories
 
     document.addEventListener('game:start', () => {
-      this._questHUD.classList.add('visible')
-      this._arrowWrap.classList.add('visible')
+      // Dev shortcuts (?dev=...) set up their own chapter state
+      if (new URLSearchParams(location.search).get('dev')) return
+      this._startChase()
     })
+
+    document.addEventListener('quiz:correct', () => this.audio.playChime())
 
     document.addEventListener('memory:collected', e => {
       const { count, total } = e.detail
@@ -206,7 +232,7 @@ export class World {
     })
   }
 
-  // ── Chapter flow: SM arrival → transition → Chapter 2 ──────────────────
+  // ── Chapter flow: chase → SM arrival → transition → Chapter 2 ──────────
 
   _setupChapterFlow() {
     document.addEventListener('quest:sm_reached', () => {
@@ -214,6 +240,36 @@ export class World {
       this._arrowWrap.classList.remove('visible')
       this._showStoryPanels(PANELS_SM_ARRIVAL, () => this._playSMTransition())
     })
+  }
+
+  _startChase() {
+    this.dog.mode = 'flee'
+    this._showStoryPanels(PANELS_CHASE_INTRO, () => {
+      this._chapter = 0
+      this._questLabel.textContent = '🐕 First Mission'
+      this._questName.textContent  = 'Catch Bubbles!!'
+      this._arrowLabel.textContent = '🐕'
+      this._questHUD.classList.add('visible')
+      this._arrowWrap.classList.add('visible')
+    })
+  }
+
+  _onDogCaught() {
+    this._chapter = -1
+    this.dog.mode = 'follow'
+    this.audio.playChime()
+    this._questHUD.classList.remove('visible')
+    this._arrowWrap.classList.remove('visible')
+    this._showStoryPanels(PANELS_CHASE_DONE, () => this._startChapter1())
+  }
+
+  _startChapter1() {
+    this._chapter = 1
+    this._questLabel.textContent = '⭐ Quest'
+    this._questName.textContent  = 'Find SM Legazpi'
+    this._arrowLabel.textContent = 'SM'
+    this._questHUD.classList.add('visible')
+    this._arrowWrap.classList.add('visible')
   }
 
   _playSMTransition() {
@@ -305,7 +361,10 @@ export class World {
 
   _updateQuestCompass(playerPos, cameraYaw) {
     let tx, tz
-    if (this._chapter === 1) {
+    if (this._chapter === 0) {
+      tx = this.dog.pos.x
+      tz = this.dog.pos.z
+    } else if (this._chapter === 1) {
       tx = SM_POSITION.x
       tz = SM_POSITION.z
     } else if (this._chapter === 2) {
@@ -338,7 +397,7 @@ export class World {
     this._loop()
   }
 
-  // Hidden testing shortcuts: ?dev=sm | ?dev=ch2 | ?dev=final
+  // Hidden testing shortcuts: ?dev=sm | ?dev=ch2 | ?dev=quiz | ?dev=final | ?dev=end
   _applyDevShortcuts() {
     const dev = new URLSearchParams(location.search).get('dev')
     if (!dev) return
@@ -346,11 +405,19 @@ export class World {
       this.player.pos.set(x, 0.5, z)
       this.player._physCollider?.setTranslation({ x, y: 2, z })
     }
-    if (dev === 'sm') tp(0, -70)
+    if (dev === 'sm') {
+      this._startChapter1()
+      tp(0, -70)
+    }
     if (dev === 'ch2') {
       this.smBuilding.arrived = true
       this._startChapter2()
       tp(0, -70)
+    }
+    if (dev === 'quiz') {
+      this.smBuilding.arrived = true
+      this._startChapter2()
+      tp(8, -78)   // right beside the first memory orb
     }
     if (dev === 'final') {
       this.smBuilding.arrived = true
@@ -375,6 +442,14 @@ export class World {
 
     this.player.update(delta)
     this.dog.update(delta, this.player.getPosition())
+
+    // Chase mission: caught Bubbles?
+    if (this._chapter === 0) {
+      const p = this.player.getPosition()
+      const dx = this.dog.pos.x - p.x
+      const dz = this.dog.pos.z - p.z
+      if (dx * dx + dz * dz < 1.9 * 1.9) this._onDogCaught()
+    }
     this.terrain.update(elapsed)
     this.particles.update(elapsed)
     this.memorySpots.update(elapsed, this.player.getPosition())
@@ -387,6 +462,7 @@ export class World {
 
     if (this.physics?.world) this.physics.step()
 
-    this.composer.render()
+    if (this.composer) this.composer.render()
+    else this.renderer.render(this.scene, this.camera)
   }
 }

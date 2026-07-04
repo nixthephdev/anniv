@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { CONFIG } from './config.js'
 
 const TRIGGER_DIST = 5
+const IS_TOUCH = ('ontouchstart' in window) || navigator.maxTouchPoints > 0
 
 /**
  * MemorySpots — glowing collectible beacons.
@@ -226,18 +227,85 @@ export class MemorySpots {
   _showPopup(spot) {
     this.popupOpen = true
     this._pendingFinal = !!spot.isFinal
-    const popup = document.getElementById('memory-popup')
+    const popup  = document.getElementById('memory-popup')
+    const contEl = document.getElementById('memory-continue')
     document.getElementById('memory-icon').textContent  = spot.icon
     document.getElementById('memory-title').textContent = spot.title
     document.getElementById('memory-text').textContent  = spot.message
+
+    // Quiz gate: she has to answer before she can continue
+    this._quizDone = !spot.quiz
+    if (spot.quiz) {
+      this._buildQuiz(spot.quiz)
+      document.getElementById('memory-quiz').style.display = 'block'
+      contEl.textContent = 'answer to continue 😉'
+    } else {
+      document.getElementById('memory-quiz').style.display = 'none'
+      contEl.textContent = 'tap or press E to continue 💕'
+    }
+
     popup.classList.add('visible')
     // Small grace period so the same movement keys / taps don't insta-dismiss
     this._popupReadyAt = performance.now() + 900
+
+    // Desktop: free the mouse so she can click the quiz answers
+    if (!IS_TOUCH && document.pointerLockElement) document.exitPointerLock()
+  }
+
+  _buildQuiz(quiz) {
+    document.getElementById('quiz-q').textContent = quiz.question
+    const optsEl = document.getElementById('quiz-options')
+    const fbEl   = document.getElementById('quiz-feedback')
+    fbEl.textContent = ''
+    fbEl.className = ''
+    optsEl.innerHTML = ''
+    this._quizButtons = []
+    quiz.options.forEach((opt, i) => {
+      const btn = document.createElement('button')
+      btn.className = 'quiz-opt'
+      btn.textContent = opt
+      btn.addEventListener('click', e => {
+        e.stopPropagation()
+        this._answer(i, quiz)
+      })
+      btn.addEventListener('touchend', e => {
+        e.preventDefault()
+        e.stopPropagation()
+        this._answer(i, quiz)
+      })
+      optsEl.appendChild(btn)
+      this._quizButtons.push(btn)
+    })
+  }
+
+  _answer(i, quiz) {
+    if (this._quizDone || !this.popupOpen) return
+    const btn  = this._quizButtons[i]
+    if (!btn || btn.disabled) return
+    const fbEl = document.getElementById('quiz-feedback')
+    const correct = quiz.correct === 'all' || i === quiz.correct
+
+    if (correct) {
+      this._quizDone = true
+      btn.classList.add('right')
+      fbEl.textContent = quiz.right
+      fbEl.className = 'right'
+      document.getElementById('memory-continue').textContent = 'tap or press E to continue 💕'
+      // Don't let the answering tap also dismiss the popup
+      this._popupReadyAt = performance.now() + 700
+      document.dispatchEvent(new CustomEvent('quiz:correct'))
+    } else {
+      btn.classList.add('wrong')
+      btn.disabled = true
+      fbEl.textContent = quiz.wrong
+      fbEl.className = 'wrong'
+    }
   }
 
   _setupPopupDismiss() {
     const dismiss = () => {
       if (!this.popupOpen) return
+      if (!this._quizDone) return
       if (performance.now() < (this._popupReadyAt || 0)) return
       this.popupOpen = false
       document.getElementById('memory-popup').classList.remove('visible')
@@ -246,16 +314,31 @@ export class MemorySpots {
         setTimeout(() => {
           document.dispatchEvent(new CustomEvent('finale:reached'))
         }, 600)
+      } else if (!IS_TOUCH) {
+        // Back to playing — re-capture the mouse
+        document.getElementById('game-canvas')?.requestPointerLock()
       }
     }
-    // Desktop: pointer-locked clicks land on document; E / Enter / Space too.
+    // Desktop: clicks land on document; E / Enter / Space too. Digits answer.
     // Mobile: canvas touches are preventDefault'ed (joystick/camera), so the
     // popup card itself is the tap target (pointer-events enabled via CSS).
     const popup = document.getElementById('memory-popup')
-    popup.addEventListener('touchend', e => { e.preventDefault(); dismiss() })
-    document.addEventListener('click', dismiss)
+    popup.addEventListener('touchend', e => {
+      if (e.target.closest('#memory-quiz')) return   // quiz taps handled above
+      e.preventDefault()
+      dismiss()
+    })
+    document.addEventListener('click', e => {
+      if (e.target.closest('#memory-quiz')) return
+      dismiss()
+    })
     window.addEventListener('keydown', e => {
       if (e.code === 'KeyE' || e.code === 'Enter' || e.code === 'Space') dismiss()
+      // 1/2/3 answer the quiz from the keyboard
+      const digit = { Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3 }[e.code]
+      if (digit !== undefined && this.popupOpen && !this._quizDone) {
+        this._quizButtons?.[digit]?.click()
+      }
     })
   }
 }

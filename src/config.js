@@ -16,6 +16,11 @@ export const CONFIG = {
   // Memory spots — glowing orbs she collects in Chapter 2 (after SM Legazpi).
   // Order here = story order. The final (isFinal) spot only unlocks after
   // all the others are collected — that's where he is waiting.
+  //
+  // Each spot can have a quiz: she has to answer to continue!
+  //   correct: index of the right option (0-based), or 'all' if every answer wins
+  //   right: shown when she gets it — make it sweet
+  //   wrong: shown when she misses — make it funny
   memorySpots: [
     {
       id: 'sm',
@@ -23,6 +28,13 @@ export const CONFIG = {
       title: 'Legazpi SM',
       message: 'This is where we finally met in person — and the moment I saw you, everything felt different. Worth every second of the wait, Moncakesss.',
       position: { x: 10, z: -80 },
+      quiz: {
+        question: 'First message ko sa\'yo noong April 30?',
+        options: ['"Uy haha"', '"Hi po, pwede makilala? 😇"', '"Gusto kita HAHAHA"'],
+        correct: 0,
+        right: 'HAHAHA yes. Two words lang — pero yun na pala ang simula ng lahat. 💚',
+        wrong: 'Weh?? I-scroll mo ulit ang chat natin HAHAHA 😂',
+      },
     },
     {
       id: 'blvd',
@@ -30,6 +42,13 @@ export const CONFIG = {
       title: 'Legazpi Boulevard · 3PM',
       message: 'A walk at 3PM. Just us, the breeze, and no rush at all. I already knew I never wanted that walk to end.',
       position: { x: -20, z: -22 },
+      quiz: {
+        question: 'Anong oras tayo naglakad sa Boulevard?',
+        options: ['6 AM jogging daw', '3 PM 🌅', 'Midnight HAHAHA'],
+        correct: 1,
+        right: '3PM. Golden hour. Pinaka-peaceful na lakad ng buhay ko.',
+        wrong: 'Hindi ah HAHAHA. Isipin mo ulit — golden hour yun. 😌',
+      },
     },
     {
       id: 'bench',
@@ -37,6 +56,13 @@ export const CONFIG = {
       title: 'That Bench',
       message: 'We sat right here. I don\'t know how long — I lost track of time completely. This spot will always mean something to me.',
       position: { x: -5, z: -38 },
+      quiz: {
+        question: 'Gaano tayo katagal sa bench na \'yun?',
+        options: ['Mga 30 minutes', 'Isang oras siguro', 'Nawala sa oras... walang nakakaalam'],
+        correct: 2,
+        right: 'Exactly. Time stopped. Hanggang ngayon hindi ko pa rin alam kung gaano katagal. 💕',
+        wrong: 'Mali HAHAHA. Mas matagal pa d\'yan — sobrang tagal na hindi ko na namalayan.',
+      },
     },
     {
       id: 'smile',
@@ -44,6 +70,13 @@ export const CONFIG = {
       title: 'Your Smile',
       message: 'The first time I saw you smile in person, I forgot every word I was about to say. It\'s still my favorite view in the whole world — and I plan on seeing it every day, forever.',
       position: { x: 28, z: -30 },
+      quiz: {
+        question: 'Ano ang paborito kong view sa buong mundo?',
+        options: ['Mayon Volcano', 'Ang smile mo', 'SM Legazpi fountain'],
+        correct: 1,
+        right: 'Correct. Sorry, Mayon — talo ka. 😊💖',
+        wrong: 'CLOSE! Pero hindi HAHAHA. Nasa harap ko lang ang sagot kapag magkasama tayo.',
+      },
     },
     {
       id: 'future',
@@ -51,6 +84,13 @@ export const CONFIG = {
       title: 'Us in the Future',
       message: 'I can\'t wait for all the places we haven\'t been yet and all the walks we haven\'t taken. Let\'s collect them all.',
       position: { x: 8, z: -50 },
+      quiz: {
+        question: 'Saan tayo pupunta next?',
+        options: ['Kahit saan', 'Kahit kailan', 'Basta\'t kasama kita'],
+        correct: 'all',
+        right: 'Trick question HAHAHA — lahat tama. Basta\'t ikaw, G ako. 🌠',
+        wrong: '',
+      },
     },
     {
       id: 'heart',

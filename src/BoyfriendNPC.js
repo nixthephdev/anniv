@@ -1,26 +1,32 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
-import { CONFIG } from './config.js'
+import { getPavementBlend } from './PavedZones.js'
+
+const WALK_SPEED = 4.2
+const RUN_SPEED  = 8.2
+const FOLLOW_MIN = 2.0
+const FOLLOW_MAX = 3.6
 
 /**
- * BoyfriendNPC — he waits at the final 💖 memory spot.
- * Hidden until all regular memories are collected ('memories:complete'),
- * then appears beside the final beacon, always turning to face her.
+ * BoyfriendNPC — the male character, following her around the open world
+ * like a companion. Same follow-at-a-distance pattern as Dog.js: trails
+ * behind, catches up when she stops, turns to face her when idle nearby.
  */
 export class BoyfriendNPC {
   constructor(scene, terrain) {
     this._scene   = scene
     this._terrain = terrain
     this._group   = null
-    this._visible = false
-    this._baseY   = 0
-    this._time    = 0
+    this._bones   = {}
+    this._rest    = {}
+    this._time      = 0
+    this._walkCycle = 0
+    this._isMoving  = false
+
+    this.pos  = new THREE.Vector3(-2.2, 0, 6.5)   // spawns near her at the start
+    this.rotY = Math.PI
 
     this._load()
-    document.addEventListener('memories:complete', () => {
-      if (this._group) this._group.visible = true
-      this._visible = true
-    })
   }
 
   async _load() {
@@ -48,64 +54,99 @@ export class BoyfriendNPC {
     }
     model.traverse(c => { if (c.isMesh) c.castShadow = true })
 
-    // Stand beside the final memory spot
-    const spot = CONFIG.memorySpots.find(s => s.isFinal)
-    if (!spot) return
-
-    const gz = spot.position.z
-    const groundY = (gz <= -48 && gz >= -115)
-      ? 0
-      : this._terrain.getHeightAt(spot.position.x, spot.position.z)
-
     this._group = new THREE.Group()
-    this._group.position.set(spot.position.x + 1.8, groundY, spot.position.z)
-    this._baseY = groundY
-    this._group.rotation.y = Math.PI   // VRoid faces -Z; start facing the world
-    this._group.visible = this._visible
+    this._group.position.set(this.pos.x, this.pos.y, this.pos.z)
+    this._group.rotation.y = this.rotY
     this._group.add(model)
     this._scene.add(this._group)
 
-    // Find arm bones so he doesn't T-pose — left arm down, right arm waving
-    this._bones = {}
+    // Find arm/leg bones so he walks instead of T-posing
     model.traverse(obj => {
       const n = obj.name
-      if (n.endsWith('J_Bip_L_UpperArm')) this._bones.leftArm  = obj
-      if (n.endsWith('J_Bip_R_UpperArm')) this._bones.rightArm = obj
-      if (n.endsWith('J_Bip_R_LowerArm')) this._bones.rightFore = obj
+      if (n.endsWith('J_Bip_L_UpperArm')) this._bones.leftArm    = obj
+      if (n.endsWith('J_Bip_R_UpperArm')) this._bones.rightArm   = obj
+      if (n.endsWith('J_Bip_L_UpperLeg')) this._bones.leftThigh  = obj
+      if (n.endsWith('J_Bip_R_UpperLeg')) this._bones.rightThigh = obj
+      if (n.endsWith('J_Bip_L_LowerLeg')) this._bones.leftShin   = obj
+      if (n.endsWith('J_Bip_R_LowerLeg')) this._bones.rightShin  = obj
     })
-    this._rest = {}
     for (const [k, b] of Object.entries(this._bones)) this._rest[k] = b.quaternion.clone()
 
-    console.info('[BoyfriendNPC] Waiting at the final memory spot, bones:', Object.keys(this._bones))
+    console.info('[BoyfriendNPC] Following, bones:', Object.keys(this._bones))
   }
 
   _pose(key, x, y, z) {
-    const b = this._bones?.[key], r = this._rest?.[key]
+    const b = this._bones[key], r = this._rest[key]
     if (!b || !r) return
     b.quaternion.copy(r).multiply(
       new THREE.Quaternion().setFromEuler(new THREE.Euler(x, y, z))
     )
   }
 
+  _groundY(x, z) {
+    const raw   = this._terrain.getHeightAt(x, z)
+    const blend = getPavementBlend(x, z)
+    return blend >= 1 ? 0 : raw * (1 - blend)
+  }
+
   update(delta, playerPos) {
-    if (!this._group || !this._group.visible) return
+    if (!this._group) return
     this._time += delta
 
-    // Gentle idle bob
-    this._group.position.y = this._baseY + Math.sin(this._time * 2.2) * 0.03
+    const toPlayer = new THREE.Vector3().subVectors(playerPos, this.pos)
+    toPlayer.y = 0
+    const dist = toPlayer.length()
 
-    // Left arm hangs; right arm raised, waving hello
-    this._pose('leftArm', 0, 0, -1.15)
-    this._pose('rightArm', 0, 0, 2.4 + Math.sin(this._time * 6) * 0.18)
-    this._pose('rightFore', 0, 0, 0.5 + Math.sin(this._time * 6) * 0.35)
+    if (dist > FOLLOW_MAX) {
+      const speed = dist > 8 ? RUN_SPEED : WALK_SPEED
+      const dir = toPlayer.normalize()
+      this.pos.x += dir.x * speed * delta
+      this.pos.z += dir.z * speed * delta
+      this.rotY = Math.atan2(dir.x, dir.z) + Math.PI   // VRoid faces -Z
+      this._isMoving = true
+      this._walkCycle += delta * speed * 2.6
+    } else {
+      this._isMoving = false
+      if (dist > FOLLOW_MIN) {
+        const target = Math.atan2(toPlayer.x, toPlayer.z) + Math.PI
+        const diff = ((target - this.rotY + Math.PI * 3) % (Math.PI * 2)) - Math.PI
+        this.rotY += diff * Math.min(1, delta * 3)
+      }
+    }
 
-    // Turn smoothly to face her (VRoid model faces -Z, so add PI)
-    const dx = playerPos.x - this._group.position.x
-    const dz = playerPos.z - this._group.position.z
-    if (dx * dx + dz * dz > 0.5) {
-      const target = Math.atan2(dx, dz) + Math.PI
-      const diff = ((target - this._group.rotation.y + Math.PI * 3) % (Math.PI * 2)) - Math.PI
-      this._group.rotation.y += diff * Math.min(1, delta * 4)
+    this.pos.y = this._groundY(this.pos.x, this.pos.z)
+    this._group.position.set(
+      this.pos.x,
+      this.pos.y + Math.sin(this._time * 2.2) * 0.02,
+      this.pos.z
+    )
+    this._group.rotation.y = this.rotY
+
+    this._animate()
+  }
+
+  _animate() {
+    if (!Object.keys(this._bones).length) return
+
+    if (this._isMoving) {
+      const swing = Math.sin(this._walkCycle) * 0.5
+      this._pose('leftThigh',   swing, 0, 0)
+      this._pose('rightThigh', -swing, 0, 0)
+      this._pose('leftShin',  Math.max(0, -swing) * 0.65, 0, 0)
+      this._pose('rightShin', Math.max(0,  swing) * 0.65, 0, 0)
+      this._pose('leftArm',  -swing * 0.4, 0, -1.15)
+      this._pose('rightArm',  swing * 0.4, 0,  1.15)
+    } else {
+      // Idle: arms hang at sides with a gentle breathing sway
+      const breathe = Math.sin(this._time * 0.6) * 0.04
+      this._pose('leftArm',  0, 0, -1.15 + breathe)
+      this._pose('rightArm', 0, 0,  1.15 - breathe)
+      const slerp = key => {
+        const b = this._bones[key], r = this._rest[key]
+        if (b && r) b.quaternion.slerp(r, 0.12)
+      }
+      slerp('leftThigh'); slerp('rightThigh')
+      slerp('leftShin');  slerp('rightShin')
     }
   }
 }

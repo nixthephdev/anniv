@@ -1,14 +1,14 @@
 import * as THREE from 'three'
 import { CONFIG } from './config.js'
+import { getPavementBlend } from './PavedZones.js'
 
 const TRIGGER_DIST = 5
 const IS_TOUCH = ('ontouchstart' in window) || navigator.maxTouchPoints > 0
 
 /**
- * MemorySpots — glowing collectible beacons.
+ * MemorySpots — glowing collectible beacons, free to find in any order while
+ * roaming the open world (no mission/chapter gating).
  *
- * Chapter 1 (walk to SM): all spots hidden and inactive.
- * Chapter 2 ('chapter2:start'): regular spots appear; collect in any order.
  * All regular spots collected → 'memories:complete' → final 💖 spot unlocks.
  * Final spot collected → popup → dismiss → 'finale:reached'.
  *
@@ -22,20 +22,19 @@ export class MemorySpots {
     this.scene   = scene
     this.terrain = terrain
     this.orbs    = []          // all spot groups (userData carries config)
-    this.active  = false       // becomes true at chapter2:start
+    this.active  = false
     this.popupOpen = false
     this._pendingFinal = false
 
     this._build()
     this._setupPopupDismiss()
-
-    document.addEventListener('chapter2:start', () => this._activate())
+    this._activate()   // no gating — spots are explorable from the start
   }
 
-  // Paved zones (road + SM grounds) sit flat at y=0, like Player._getGroundHeight
   _groundY(x, z) {
-    if (z <= -48 && z >= -115) return 0
-    return this.terrain.getHeightAt(x, z)
+    const raw   = this.terrain.getHeightAt(x, z)
+    const blend = getPavementBlend(x, z)
+    return blend >= 1 ? 0 : raw * (1 - blend)
   }
 
   _build() {

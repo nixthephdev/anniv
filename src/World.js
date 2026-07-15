@@ -13,39 +13,12 @@ import { PhotoFrames }  from './PhotoFrames.js'
 import { Particles }    from './Particles.js'
 import { AudioManager } from './AudioManager.js'
 import { UI }           from './UI.js'
-import { SMBuilding, SM_POSITION } from './SMBuilding.js'
+import { SMBuilding }    from './SMBuilding.js'
 import { Terminal }   from './Terminal.js'
 import { Roads }          from './Roads.js'
 import { Cars }           from './Cars.js'
 import { Physics }        from './Physics.js'
 import { BoyfriendNPC }  from './BoyfriendNPC.js'
-
-// ── Story panels ──────────────────────────────────────────────────────────
-
-const PANELS_CHASE_INTRO = [
-  { icon: '😱', name: 'Ikaw', text: 'HUY!! Kinuha ni Bubbles yung phone mo tapos TUMAKBO!!' },
-  { icon: '🐕', name: 'Bubbles', text: '"WOOF." (Ibig sabihin: habulin mo muna ako, Ate. 😤)' },
-  { icon: '🏃', name: 'Tip', text: 'I-hold ang SHIFT (o yung RUN button) para tumakbo — ang bilis niya!!' },
-]
-
-const PANELS_CHASE_DONE = [
-  { icon: '🎉', name: 'Ikaw', text: 'HULI KA!! Nabawi na ang phone. Pero si Bubbles? Walang kahit konting pagsisisi.' },
-  { icon: '🐕', name: 'Bubbles', text: 'wag wag wag (sobrang proud siya sa sarili niya)' },
-  { icon: '💚', name: 'Siya', text: 'New message: "Punta ka sa SM Legazpi 😊 may sasabihin ako sa\'yo." — Sundan mo ang compass!' },
-]
-
-const PANELS_SM_ARRIVAL = [
-  { icon: '💭', name: '...', text: 'Kita mo na ang entrance ng SM Legazpi. Bumibilis ang tibok ng puso mo — alam mong nandito siya, kung saan man.' },
-  { icon: '💚', name: 'Siya', text: '"Uy!! Dito!!" Sumulpot siya malapit sa entrance, kumakaway nang todo — dala yung malaking ngiting paborito mo.' },
-  { icon: '😱', name: 'Ikaw', text: 'Pero bago mo pa siya maabot — may biglang humila sa kanya mula sa likod, tawa nang tawa, kinaladkad siya papasok ng mall!' },
-  { icon: '🏃', name: 'Ikaw', text: '"Hintayin mo ako!!" Tumakbo ka, sumingit sa dami ng tao, sinundan siya papasok...' },
-]
-
-const PANELS_CHAPTER2 = [
-  { icon: '💚', name: 'Siya', text: '"HAHA gotcha!! Kita mo dapat yung mukha mo kanina 😆"' },
-  { icon: '💖', name: 'Siya', text: '"Teka, makinig ka muna... itinago ko ang mga paborito nating alaala sa buong mundong \'to. Bawat kumikinang na ilaw diyan, isang alaala natin."' },
-  { icon: '✨', name: 'Siya', text: '"Hanapin mo silang lahat, Moncakesss. Hihintayin kita kung saan sila nagtatapos. 💖"' },
-]
 
 export class World {
   constructor(canvas) {
@@ -181,8 +154,7 @@ export class World {
     this.cars        = new Cars(this.scene)
     this.boyfriendNPC = new BoyfriendNPC(this.scene, this.terrain)
 
-    this._setupQuestHUD()
-    this._setupChapterFlow()
+    this._setupAudioFeedback()
     this._setupPostProcessing()
 
     // Physics — async WASM init; player falls back to terrain-height until ready
@@ -198,171 +170,12 @@ export class World {
     await new Promise(r => setTimeout(r, 600))
   }
 
-  // ── Quest HUD ───────────────────────────────────────────────────────────
+  // ── Audio feedback for memory spots ─────────────────────────────────────
 
-  _setupQuestHUD() {
-    this._questHUD   = document.getElementById('quest-hud')
-    this._questLabel = document.getElementById('quest-label')
-    this._questName  = document.getElementById('quest-name')
-    this._questDist  = document.getElementById('quest-dist')
-    this._arrowWrap  = document.getElementById('quest-arrow-wrap')
-    this._arrowSVG   = document.getElementById('quest-arrow-svg')
-    this._arrowLabel = document.getElementById('quest-arrow-label')
-    this._chapter    = -1   // -1 = story/idle, 0 = chase, 1 = find SM, 2 = memories
-
-    document.addEventListener('game:start', () => {
-      // Dev shortcuts (?dev=...) set up their own chapter state
-      if (new URLSearchParams(location.search).get('dev')) return
-      this._startChase()
-    })
-
+  _setupAudioFeedback() {
     document.addEventListener('quiz:correct', () => this.audio.playChime())
-
-    document.addEventListener('memory:collected', e => {
-      const { count, total } = e.detail
-      this._questLabel.textContent = `💖 Alaala · ${count}/${total}`
-      this.audio.playChime()
-    })
-
-    document.addEventListener('memories:complete', () => {
-      this._questLabel.textContent = '💖 Huling Alaala'
-      this._questName.textContent  = 'May naghihintay sa\'yo…'
-      this.audio.playChime()
-    })
-
-    document.addEventListener('finale:reached', () => {
-      this._chapter = 3   // done — compass off
-      this._questHUD.classList.remove('visible')
-      this._arrowWrap.classList.remove('visible')
-    })
+    document.addEventListener('memory:collected', () => this.audio.playChime())
   }
-
-  // ── Chapter flow: chase → SM arrival → transition → Chapter 2 ──────────
-
-  _setupChapterFlow() {
-    document.addEventListener('quest:sm_reached', () => {
-      this._questHUD.classList.remove('visible')
-      this._arrowWrap.classList.remove('visible')
-      this._showStoryPanels(PANELS_SM_ARRIVAL, () => this._playSMTransition())
-    })
-  }
-
-  _startChase() {
-    this.dog.mode = 'flee'
-    this._showStoryPanels(PANELS_CHASE_INTRO, () => {
-      this._chapter = 0
-      this._questLabel.textContent = '🐕 Unang Misyon'
-      this._questName.textContent  = 'Habulin si Bubbles!!'
-      this._arrowLabel.textContent = '🐕'
-      this._questHUD.classList.add('visible')
-      this._arrowWrap.classList.add('visible')
-    })
-  }
-
-  _onDogCaught() {
-    this._chapter = -1
-    this.dog.mode = 'follow'
-    this.audio.playChime()
-    this._questHUD.classList.remove('visible')
-    this._arrowWrap.classList.remove('visible')
-    this._showStoryPanels(PANELS_CHASE_DONE, () => this._startChapter1())
-  }
-
-  _startChapter1() {
-    this._chapter = 1
-    this._questLabel.textContent = '⭐ Quest'
-    this._questName.textContent  = 'Puntahan ang SM Legazpi'
-    this._arrowLabel.textContent = 'SM'
-    this._questHUD.classList.add('visible')
-    this._arrowWrap.classList.add('visible')
-  }
-
-  _playSMTransition() {
-    const el = document.getElementById('world-transition')
-    el.classList.add('visible')
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => el.classList.add('faded'))
-    )
-
-    // Hold the SM screen for a beat, fade it out, then open Chapter 2
-    setTimeout(() => {
-      el.classList.remove('faded')      // opacity → 0 (0.9s CSS transition)
-      setTimeout(() => {
-        el.classList.remove('visible')  // display: none
-        this._showStoryPanels(PANELS_CHAPTER2, () => this._startChapter2())
-      }, 950)
-    }, 2600)
-  }
-
-  _startChapter2() {
-    this._chapter = 2
-    this._questLabel.textContent = '💖 Alaala · 0/5'
-    this._questName.textContent  = 'Balikan ang mga alaala natin'
-    this._arrowLabel.textContent = '💖'
-    this._questHUD.classList.add('visible')
-    this._arrowWrap.classList.add('visible')
-    document.dispatchEvent(new CustomEvent('chapter2:start'))
-  }
-
-  /** Generic visual-novel dialogue sequence over the sm-story overlay. */
-  _showStoryPanels(panels, onDone) {
-    const overlay = document.getElementById('sm-story-overlay')
-    const iconEl  = document.getElementById('sm-story-icon')
-    const nameEl  = document.getElementById('sm-story-name')
-    const textEl  = document.getElementById('sm-story-text')
-    const dotsEl  = document.getElementById('sm-story-dots')
-
-    dotsEl.innerHTML = panels.map((_, i) => `<div class="sm-sdot" data-i="${i}"></div>`).join('')
-    const dotEls = dotsEl.querySelectorAll('.sm-sdot')
-
-    let idx = 0
-    let transitioning = false
-
-    const refreshDots = () => {
-      dotEls.forEach((d, i) => {
-        d.className = 'sm-sdot' + (i < idx ? ' done' : i === idx ? ' active' : '')
-      })
-    }
-
-    const showPanel = () => {
-      iconEl.textContent = panels[idx].icon
-      nameEl.textContent = panels[idx].name
-      textEl.textContent = panels[idx].text
-      textEl.style.opacity = '1'
-      refreshDots()
-    }
-
-    const advance = () => {
-      if (transitioning) return
-      transitioning = true
-
-      idx++
-      if (idx >= panels.length) {
-        overlay.classList.remove('dimmed')
-        overlay.removeEventListener('click', advance)
-        setTimeout(() => {
-          overlay.classList.remove('visible')
-          if (onDone) onDone()
-        }, 500)
-        return
-      }
-
-      textEl.style.opacity = '0'
-      setTimeout(() => {
-        showPanel()
-        transitioning = false
-      }, 180)
-    }
-
-    overlay.addEventListener('click', advance)
-    overlay.classList.add('visible')
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      overlay.classList.add('dimmed')
-      showPanel()
-    }))
-  }
-
-  // ── Compass ─────────────────────────────────────────────────────────────
 
   // Recentre the sun's shadow frustum on the player each frame — the frustum
   // itself stays a fixed ±110 box (cheap, unchanged shadow-map resolution),
@@ -377,80 +190,9 @@ export class World {
     this.sun.target.position.set(playerPos.x, 0, playerPos.z)
   }
 
-  _updateQuestCompass(playerPos, cameraYaw) {
-    let tx, tz
-    if (this._chapter === 0) {
-      tx = this.dog.pos.x
-      tz = this.dog.pos.z
-    } else if (this._chapter === 1) {
-      tx = SM_POSITION.x
-      tz = SM_POSITION.z
-    } else if (this._chapter === 2) {
-      const target = this.memorySpots.getCompassTarget(playerPos)
-      if (!target) return
-      tx = target.x
-      tz = target.z
-    } else {
-      return
-    }
-
-    const dx   = tx - playerPos.x
-    const dz   = tz - playerPos.z
-    const dist = Math.sqrt(dx * dx + dz * dz)
-
-    this._questDist.textContent = `${Math.round(dist)} m na lang`
-
-    // World-space angle to target, minus camera yaw so the arrow is
-    // relative to where she's facing (0° = forward)
-    const worldAngle = Math.atan2(dx, -dz)
-    const relAngle   = worldAngle - cameraYaw
-    const deg        = relAngle * (180 / Math.PI)
-
-    this._arrowSVG.style.transform = `rotate(${deg}deg)`
-  }
-
   start() {
     this.clock.start()
-    this._applyDevShortcuts()
     this._loop()
-  }
-
-  // Hidden testing shortcuts: ?dev=sm | ?dev=ch2 | ?dev=quiz | ?dev=final | ?dev=end
-  _applyDevShortcuts() {
-    const dev = new URLSearchParams(location.search).get('dev')
-    if (!dev) return
-    const tp = (x, z) => {
-      this.player.pos.set(x, 0.5, z)
-      this.player._physCollider?.setTranslation({ x, y: 2, z })
-    }
-    if (dev === 'sm') {
-      this._startChapter1()
-      tp(0, -70)
-    }
-    if (dev === 'ch2') {
-      this.smBuilding.arrived = true
-      this._startChapter2()
-      tp(0, -70)
-    }
-    if (dev === 'quiz') {
-      this.smBuilding.arrived = true
-      this._startChapter2()
-      tp(8, -78)   // right beside the first memory orb
-    }
-    if (dev === 'final') {
-      this.smBuilding.arrived = true
-      this._startChapter2()
-      this.memorySpots.orbs.forEach(g => {
-        if (!g.userData.isFinal) {
-          g.userData.visited = true
-          this.memorySpots._markCollected(g)
-        }
-      })
-      tp(0, -29)
-    }
-    if (dev === 'end') {
-      setTimeout(() => document.dispatchEvent(new CustomEvent('finale:reached')), 1500)
-    }
   }
 
   _loop() {
@@ -461,14 +203,6 @@ export class World {
     this.player.update(delta)
     this._updateSunFollow(this.player.getPosition())
     this.dog.update(delta, this.player.getPosition())
-
-    // Chase mission: caught Bubbles?
-    if (this._chapter === 0) {
-      const p = this.player.getPosition()
-      const dx = this.dog.pos.x - p.x
-      const dz = this.dog.pos.z - p.z
-      if (dx * dx + dz * dz < 1.9 * 1.9) this._onDogCaught()
-    }
     this.terrain.update(elapsed)
     this.particles.update(elapsed)
     this.memorySpots.update(elapsed, this.player.getPosition())
@@ -477,7 +211,6 @@ export class World {
     this.smBuilding.update(elapsed, this.player.getPosition())
     this.cars.update(delta)
     this.boyfriendNPC.update(delta, this.player.getPosition())
-    this._updateQuestCompass(this.player.getPosition(), this.player.cameraYaw)
 
     if (this.physics?.world) this.physics.step()
 

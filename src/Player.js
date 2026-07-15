@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { toon, toonGradMap } from './toon.js'
 import { PHYS_HALF_H, PHYS_RADIUS } from './Physics.js'
+import { getPavementBlend } from './PavedZones.js'
 
 // Scratch objects — allocated once, reused every frame to avoid GC pressure
 const _tmpQ = new THREE.Quaternion()
@@ -14,6 +15,7 @@ const CAM_HEIGHT     = 1.8
 const MOUSE_SENS     = 0.0022
 const TOUCH_CAM_SENS = 0.0042
 const JOY_RADIUS     = 52   // px — max joystick knob travel
+const WORLD_BOUND     = 300  // keep player inside the physics heightfield span (±310)
 
 export const isMobile = ('ontouchstart' in window) || navigator.maxTouchPoints > 0
 
@@ -281,9 +283,9 @@ export class Player {
     // Feet position = capsule centre − (halfH + radius)
     const np = this._physCollider.translation()
     this.pos.set(
-      Math.max(-130, Math.min(130, np.x)),
+      Math.max(-WORLD_BOUND, Math.min(WORLD_BOUND, np.x)),
       np.y - (PHYS_HALF_H + PHYS_RADIUS),
-      Math.max(-130, Math.min(130, np.z))
+      Math.max(-WORLD_BOUND, Math.min(WORLD_BOUND, np.z))
     )
   }
 
@@ -609,8 +611,8 @@ export class Player {
           this.isGrounded = true
         }
       }
-      this.pos.x = Math.max(-130, Math.min(130, this.pos.x))
-      this.pos.z = Math.max(-130, Math.min(130, this.pos.z))
+      this.pos.x = Math.max(-WORLD_BOUND, Math.min(WORLD_BOUND, this.pos.x))
+      this.pos.z = Math.max(-WORLD_BOUND, Math.min(WORLD_BOUND, this.pos.z))
     }
 
     this.charGroup.position.set(this.pos.x, this.pos.y, this.pos.z)
@@ -659,18 +661,13 @@ export class Player {
     }
   }
 
-  // Returns flat y=0 for paved zones (road, sidewalks, SM grounds)
-  // so the player walks on the road surface instead of the terrain mesh.
+  // Returns flat y=0 inside paved zones (roads, plazas, building grounds)
+  // so the player walks on the pavement surface instead of the terrain mesh,
+  // blending smoothly into raw terrain height outside them.
   _getGroundHeight(x, z) {
-    // Road corridor + sidewalks (z -48 to -76) and SM building grounds (z -76 to -115)
-    if (z <= -48 && z >= -115) return 0
-    const raw = this.terrain.getHeightAt(x, z)
-    // Smooth blend from terrain into paved zone over 4 units
-    if (z <= -44 && z > -48) {
-      const t = (-z - 44) / 4   // 0 at z=-44, 1 at z=-48
-      return raw * (1 - t)
-    }
-    return raw
+    const raw   = this.terrain.getHeightAt(x, z)
+    const blend = getPavementBlend(x, z)
+    return blend >= 1 ? 0 : raw * (1 - blend)
   }
 
   _updateCamera() {

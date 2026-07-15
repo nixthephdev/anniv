@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { toon } from './toon.js'
+import { addPavedZone } from './PavedZones.js'
 
 // Main east-west road between the park and SM
 // z = -54 to z = -70 (16 units wide)
@@ -8,6 +9,7 @@ export class Roads {
   constructor(scene) {
     this.scene = scene
     this._build()
+    this._buildDistrictRoads()
   }
 
   _build() {
@@ -16,6 +18,107 @@ export class Roads {
     this._addMarkings()
     this._addLamps()
     this._addCurbs()
+  }
+
+  // ── Naga City district connector roads ──────────────────────────────────
+  // North-south Avenue (doubles as the boulevard) linking the existing
+  // corridor to a new east-west Downtown Loop the city zones sit along.
+  _buildDistrictRoads() {
+    this.addSegment({ x1: 0, z1: -70, x2: 0,    z2: 150 })   // Avenue
+    this.addSegment({ x1: -170, z1: 150, x2: 170, z2: 150 }) // Downtown Loop
+  }
+
+  // Generic axis-aligned road segment: asphalt + sidewalks + curbs + dashed
+  // centerline + lamp posts, mirroring the hand-placed corridor above.
+  // Registers its own footprint as a paved zone so terrain/physics flatten
+  // correctly underneath it.
+  addSegment({ x1, z1, x2, z2, width = 16, sidewalk = 4, lampSpacing = 32, dashSpacing = 8 }) {
+    const horizontal = z1 === z2
+    const length = horizontal ? Math.abs(x2 - x1) : Math.abs(z2 - z1)
+    const cx = (x1 + x2) / 2
+    const cz = (z1 + z2) / 2
+    const half = length / 2
+
+    const asphaltMat  = toon(0x1c1c1c)
+    const sidewalkMat = toon(0x9e9e8e)
+    const curbMat     = toon(0xbdbdad)
+
+    // Asphalt
+    const roadGeo = horizontal
+      ? new THREE.PlaneGeometry(length, width)
+      : new THREE.PlaneGeometry(width, length)
+    const road = new THREE.Mesh(roadGeo, asphaltMat)
+    road.rotation.x = -Math.PI / 2
+    road.position.set(cx, 0.08, cz)
+    road.receiveShadow = true
+    this.scene.add(road)
+
+    // Sidewalks + curbs on both sides
+    for (const side of [1, -1]) {
+      const sOff = side * (width / 2 + sidewalk / 2)
+      const swGeo = horizontal
+        ? new THREE.PlaneGeometry(length, sidewalk)
+        : new THREE.PlaneGeometry(sidewalk, length)
+      const sw = new THREE.Mesh(swGeo, sidewalkMat)
+      sw.rotation.x = -Math.PI / 2
+      sw.position.set(horizontal ? cx : cx + sOff, 0.04, horizontal ? cz + sOff : cz)
+      sw.receiveShadow = true
+      this.scene.add(sw)
+
+      const cOff = side * (width / 2)
+      const curbGeo = horizontal
+        ? new THREE.BoxGeometry(length, 0.22, 0.55)
+        : new THREE.BoxGeometry(0.55, 0.22, length)
+      const curb = new THREE.Mesh(curbGeo, curbMat)
+      curb.position.set(horizontal ? cx : cx + cOff, 0.11, horizontal ? cz + cOff : cz)
+      this.scene.add(curb)
+    }
+
+    // Dashed centerline
+    const dashMat = toon(0xeeeecc, { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 })
+    for (let d = -half; d < half; d += dashSpacing) {
+      const dashGeo = horizontal
+        ? new THREE.PlaneGeometry(4.5, 0.28)
+        : new THREE.PlaneGeometry(0.28, 4.5)
+      const dash = new THREE.Mesh(dashGeo, dashMat)
+      dash.rotation.x = -Math.PI / 2
+      dash.position.set(horizontal ? cx + d : cx, 0.09, horizontal ? cz : cz + d)
+      this.scene.add(dash)
+    }
+
+    // Lamp posts along both sides
+    const poleMat = toon(0x555555)
+    const headMat = toon(0xfff8cc, { emissive: new THREE.Color(0xffeeaa), emissiveIntensity: 1.0 })
+    for (let d = -half + lampSpacing / 2; d < half; d += lampSpacing) {
+      for (const side of [1, -1]) {
+        const off = side * (width / 2 + 0.5)
+        const px = horizontal ? cx + d : cx + off
+        const pz = horizontal ? cz + off : cz + d
+        this._addLampAt(px, pz, poleMat, headMat)
+      }
+    }
+
+    addPavedZone({
+      x1: horizontal ? Math.min(x1, x2) - 2 : cx - width / 2 - sidewalk,
+      x2: horizontal ? Math.max(x1, x2) + 2 : cx + width / 2 + sidewalk,
+      z1: horizontal ? cz - width / 2 - sidewalk : Math.min(z1, z2) - 2,
+      z2: horizontal ? cz + width / 2 + sidewalk : Math.max(z1, z2) + 2,
+    })
+  }
+
+  _addLampAt(x, z, poleMat, headMat) {
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 8, 7), poleMat)
+    pole.position.set(x, 4, z)
+    pole.castShadow = true
+    this.scene.add(pole)
+
+    const head = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.3, 0.7), headMat)
+    head.position.set(x, 8.15, z)
+    this.scene.add(head)
+
+    const light = new THREE.PointLight(0xfff8cc, 0.9, 22)
+    light.position.set(x, 7.8, z)
+    this.scene.add(light)
   }
 
   _addAsphalt() {

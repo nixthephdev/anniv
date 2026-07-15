@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { toon, toonGradMap } from './toon.js'
+import { isPaved } from './PavedZones.js'
 
 const MOBILE = ('ontouchstart' in window) || navigator.maxTouchPoints > 0
 
@@ -26,6 +27,7 @@ export class Terrain {
     this._windShader = null
 
     this._buildGround()
+    this._buildGroundExtension()
     this._buildGrassBlades()
     this._buildTrees()
   }
@@ -47,6 +49,7 @@ export class Terrain {
     const tex = this._makeGrassTexture()
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping
     tex.repeat.set(22, 22)
+    this._groundTexture = tex
 
     const mat = new THREE.MeshToonMaterial({ map: tex, gradientMap: toonGradMap() })
     const mesh = new THREE.Mesh(geo, mat)
@@ -55,6 +58,27 @@ export class Terrain {
 
     // Store geo for getHeightAt
     this.geo = geo
+  }
+
+  // Large flat low-poly skirt around the original hill plane, so the open
+  // world (new city district etc.) has ground to walk on without needing a
+  // finely-tessellated mesh — everywhere outside the hill's radius is flat
+  // (heightAt === 0) anyway, so a coarse grid looks identical but is cheap.
+  // Sits fractionally below the hill plane so the two never z-fight.
+  _buildGroundExtension() {
+    const size = 640, segs = MOBILE ? 24 : 36
+    const geo = new THREE.PlaneGeometry(size, size, segs, segs)
+    geo.rotateX(-Math.PI / 2)
+
+    const tex = this._groundTexture.clone()
+    tex.needsUpdate = true
+    tex.repeat.set(70, 70)
+
+    const mat = new THREE.MeshToonMaterial({ map: tex, gradientMap: toonGradMap() })
+    const mesh = new THREE.Mesh(geo, mat)
+    mesh.position.y = -0.02
+    mesh.receiveShadow = true
+    this.scene.add(mesh)
   }
 
   _makeGrassTexture() {
@@ -182,7 +206,7 @@ export class Terrain {
       const x = Math.cos(angle) * dist
       const z = Math.sin(angle) * dist
 
-      if (z < -44) continue   // skip road + SM zone
+      if (isPaved(x, z)) continue   // skip paved zones (roads, plazas, building grounds)
 
       dummy.position.set(x, heightAt(x, z), z)
       dummy.rotation.set(0, rng() * Math.PI * 2, (rng() - 0.5) * 0.35)
@@ -211,7 +235,7 @@ export class Terrain {
       const dist  = 14 + rng() * 78
       const x = Math.cos(angle) * dist
       const z = Math.sin(angle) * dist
-      if (z < -44) continue   // skip road + SM zone
+      if (isPaved(x, z)) continue   // skip paved zones (roads, plazas, building grounds)
       this._placeTree(x, z, rng)
     }
   }
@@ -369,7 +393,7 @@ export class Terrain {
       const dist  = 6 + rng() * 72
       const x = Math.cos(angle) * dist
       const z = Math.sin(angle) * dist
-      if (z < -44) continue   // skip road + SM zone
+      if (isPaved(x, z)) continue   // skip paved zones (roads, plazas, building grounds)
 
       const y = heightAt(x, z)
       const def = flowerDefs[Math.floor(rng() * flowerDefs.length)]
@@ -500,7 +524,7 @@ export class Terrain {
       const angle = rng() * Math.PI * 2
       const dist  = 18 + rng() * 65
       const x = Math.cos(angle) * dist, z = Math.sin(angle) * dist
-      if (z < -44) continue   // skip road + SM zone
+      if (isPaved(x, z)) continue   // skip paved zones (roads, plazas, building grounds)
 
       const y = heightAt(x, z)
       const s = 0.18 + rng() * 0.55

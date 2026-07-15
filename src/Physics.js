@@ -1,4 +1,5 @@
 import RAPIER from '@dimforge/rapier3d-compat'
+import { getPavementBlend } from './PavedZones.js'
 
 // Half-dimensions for the player capsule
 export const PHYS_HALF_H = 0.5   // half-height of cylinder segment
@@ -26,19 +27,19 @@ export class Physics {
   // ── Terrain heightfield ─────────────────────────────────────────────────
 
   _buildTerrain(terrain) {
-    const N  = 65          // grid vertices per side (64 cells)
-    const WS = 280         // world span (±140)
+    const N  = 143         // grid vertices per side (142 cells) — keeps ~4.4 unit
+                            // cells despite the larger span, same resolution as before
+    const WS = 620         // world span (±310) — matches Terrain's ground extension
     const heights = new Float32Array(N * N)
 
     for (let row = 0; row < N; row++) {
       for (let col = 0; col < N; col++) {
         const x = (col / (N - 1) - 0.5) * WS
         const z = (row / (N - 1) - 0.5) * WS
-        // Mirror the blending used in Player._getGroundHeight()
-        let h = terrain.getHeightAt(x, z)
-        if (z <= -48) h = 0
-        else if (z <= -44) h *= 1 - (-z - 44) / 4
-        heights[row * N + col] = h
+        // Mirror the paved-zone blending used in Player._getGroundHeight()
+        const raw   = terrain.getHeightAt(x, z)
+        const blend = getPavementBlend(x, z)
+        heights[row * N + col] = blend >= 1 ? 0 : raw * (1 - blend)
       }
     }
 

@@ -95,7 +95,8 @@ export class World {
   _setupLights() {
     // Bright directional sun — toon needs strong directionality for clean shadow steps
     const sun = new THREE.DirectionalLight(0xfff5d0, 3.2)
-    sun.position.set(60, 100, -130)
+    this._sunOffset = new THREE.Vector3(60, 100, -130)   // fixed offset, recentred on player each frame
+    sun.position.copy(this._sunOffset)
     sun.castShadow = true
     sun.shadow.mapSize.set(isMobile ? 512 : 2048, isMobile ? 512 : 2048)
     sun.shadow.camera.near   = 1
@@ -107,6 +108,10 @@ export class World {
     sun.shadow.bias          = -0.0003
     sun.shadow.normalBias    = 0.02
     this.scene.add(sun)
+    // Target must be in the scene graph for its world matrix (and therefore
+    // the shadow frustum) to update when we move it every frame below.
+    this.scene.add(sun.target)
+    this.sun = sun
 
     // Cool fill from behind — gives the anime rim-light look
     const fill = new THREE.DirectionalLight(0x9ec8f5, 0.7)
@@ -359,6 +364,19 @@ export class World {
 
   // ── Compass ─────────────────────────────────────────────────────────────
 
+  // Recentre the sun's shadow frustum on the player each frame — the frustum
+  // itself stays a fixed ±110 box (cheap, unchanged shadow-map resolution),
+  // it just follows the player around the now much bigger world instead of
+  // being pinned to the origin, so distant zones still get dynamic shadows.
+  _updateSunFollow(playerPos) {
+    this.sun.position.set(
+      playerPos.x + this._sunOffset.x,
+      this._sunOffset.y,
+      playerPos.z + this._sunOffset.z
+    )
+    this.sun.target.position.set(playerPos.x, 0, playerPos.z)
+  }
+
   _updateQuestCompass(playerPos, cameraYaw) {
     let tx, tz
     if (this._chapter === 0) {
@@ -441,6 +459,7 @@ export class World {
     const elapsed = this.clock.getElapsedTime()
 
     this.player.update(delta)
+    this._updateSunFollow(this.player.getPosition())
     this.dog.update(delta, this.player.getPosition())
 
     // Chase mission: caught Bubbles?

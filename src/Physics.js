@@ -63,6 +63,13 @@ export class Physics {
     for (const x of [-160, -146, -132, -118, -104, -90, -76, -62]) {
       this._addStaticBox(x, 2, 188, 4, 4, 3.5)
     }
+
+    // City Kit Commercial buildings (CityBuildings.js) — approximate AABBs
+    // from each model's known footprint × its placement scale
+    this._addStaticBox(120, 20.32, 110, 8, 20.32, 8)   // BPO tower
+    this._addStaticBox(88,  9.81,  150, 6, 9.81,  6)   // Mall building-l
+    this._addStaticBox(104, 12.45, 150, 6, 12.45, 6)   // Mall building-m
+    this._addStaticBox(40,  8.04,  180, 6, 8.04,  6)   // Museum
   }
 
   _addStaticBox(x, y, z, hw, hh, hd) {

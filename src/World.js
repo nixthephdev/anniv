@@ -21,6 +21,7 @@ import { Physics }        from './Physics.js'
 import { BoyfriendNPC }  from './BoyfriendNPC.js'
 import { Houses }        from './Houses.js'
 import { Plaza }          from './Plaza.js'
+import { CityBuildings } from './CityBuildings.js'
 
 export class World {
   constructor(canvas) {
@@ -157,6 +158,7 @@ export class World {
     this.boyfriendNPC = new BoyfriendNPC(this.scene, this.terrain)
     this.houses       = new Houses(this.scene)
     this.plaza        = new Plaza(this.scene)
+    this.cityBuildings = new CityBuildings(this.scene)
 
     this._setupAudioFeedback()
     this._setupPostProcessing()

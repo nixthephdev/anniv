@@ -63,12 +63,14 @@ export class BoyfriendNPC {
     // Find arm/leg bones so he walks instead of T-posing
     model.traverse(obj => {
       const n = obj.name
-      if (n.endsWith('J_Bip_L_UpperArm')) this._bones.leftArm    = obj
-      if (n.endsWith('J_Bip_R_UpperArm')) this._bones.rightArm   = obj
-      if (n.endsWith('J_Bip_L_UpperLeg')) this._bones.leftThigh  = obj
-      if (n.endsWith('J_Bip_R_UpperLeg')) this._bones.rightThigh = obj
-      if (n.endsWith('J_Bip_L_LowerLeg')) this._bones.leftShin   = obj
-      if (n.endsWith('J_Bip_R_LowerLeg')) this._bones.rightShin  = obj
+      if (n.endsWith('J_Bip_L_UpperArm')) this._bones.leftArm      = obj
+      if (n.endsWith('J_Bip_R_UpperArm')) this._bones.rightArm     = obj
+      if (n.endsWith('J_Bip_L_LowerArm')) this._bones.leftForearm  = obj
+      if (n.endsWith('J_Bip_R_LowerArm')) this._bones.rightForearm = obj
+      if (n.endsWith('J_Bip_L_UpperLeg')) this._bones.leftThigh    = obj
+      if (n.endsWith('J_Bip_R_UpperLeg')) this._bones.rightThigh   = obj
+      if (n.endsWith('J_Bip_L_LowerLeg')) this._bones.leftShin     = obj
+      if (n.endsWith('J_Bip_R_LowerLeg')) this._bones.rightShin    = obj
     })
     for (const [k, b] of Object.entries(this._bones)) this._rest[k] = b.quaternion.clone()
 
@@ -136,11 +138,18 @@ export class BoyfriendNPC {
       this._pose('rightShin', Math.max(0,  swing) * 0.65, 0, 0)
       this._pose('leftArm',  -swing * 0.4, 0, -1.15)
       this._pose('rightArm',  swing * 0.4, 0,  1.15)
+      // Elbow bend — constant relaxed bend plus extra on the backswing.
+      // Without this the arms swing as rigid straight rods from the shoulder.
+      this._pose('leftForearm',  0.3 + Math.max(0,  swing) * 0.5, 0, 0)
+      this._pose('rightForearm', 0.3 + Math.max(0, -swing) * 0.5, 0, 0)
     } else {
-      // Idle: arms hang at sides with a gentle breathing sway
+      // Idle: arms hang at sides with a gentle breathing sway, elbows kept
+      // slightly bent rather than snapping back to the dead-straight rest pose
       const breathe = Math.sin(this._time * 0.6) * 0.04
       this._pose('leftArm',  0, 0, -1.15 + breathe)
       this._pose('rightArm', 0, 0,  1.15 - breathe)
+      this._pose('leftForearm',  0.28, 0, 0)
+      this._pose('rightForearm', 0.28, 0, 0)
       const slerp = key => {
         const b = this._bones[key], r = this._rest[key]
         if (b && r) b.quaternion.slerp(r, 0.12)

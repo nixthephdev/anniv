@@ -130,8 +130,10 @@ export class Player {
       if (n.endsWith('J_Bip_R_UpperLeg')) vb.rightThigh = obj
       if (n.endsWith('J_Bip_L_LowerLeg')) vb.leftShin   = obj
       if (n.endsWith('J_Bip_R_LowerLeg')) vb.rightShin  = obj
-      if (n.endsWith('J_Bip_L_UpperArm')) vb.leftArm    = obj
-      if (n.endsWith('J_Bip_R_UpperArm')) vb.rightArm   = obj
+      if (n.endsWith('J_Bip_L_UpperArm')) vb.leftArm      = obj
+      if (n.endsWith('J_Bip_R_UpperArm')) vb.rightArm     = obj
+      if (n.endsWith('J_Bip_L_LowerArm')) vb.leftForearm  = obj
+      if (n.endsWith('J_Bip_R_LowerArm')) vb.rightForearm = obj
     })
     this._vrmBones = Object.keys(vb).length >= 2 ? vb : null
     console.info('[VRM] matched bones:', Object.keys(vb))
@@ -197,6 +199,7 @@ export class Player {
       this._off('leftThigh',  -0.4, 0, 0); this._off('rightThigh', -0.4, 0, 0)
       this._off('leftShin',    0.5, 0, 0); this._off('rightShin',   0.5, 0, 0)
       this._off('leftArm',  -0.4, 0, -0.8); this._off('rightArm', -0.4, 0, 0.8)
+      this._off('leftForearm', 0.35, 0, 0); this._off('rightForearm', 0.35, 0, 0)
       return
     }
 
@@ -213,6 +216,11 @@ export class Player {
       // Arms: hang at sides (Z offset from T-pose) + counter-swing (X offset)
       this._off('leftArm',  -swing * 0.45, 0, -1.15)
       this._off('rightArm',  swing * 0.45, 0,  1.15)
+      // Elbow bend — a constant relaxed bend plus extra on the backswing,
+      // same "trailing limb curls" idea as the knees. Without this the arms
+      // swing as rigid straight rods, which reads as stiff/robotic.
+      this._off('leftForearm',  0.3 + Math.max(0,  swing) * 0.5, 0, 0)
+      this._off('rightForearm', 0.3 + Math.max(0, -swing) * 0.5, 0, 0)
 
       if (b.hips && r.hips) {
         b.hips.quaternion.copy(r.hips).multiply(
@@ -225,10 +233,13 @@ export class Player {
         )
       }
     } else {
-      // Idle: arms hang at sides with a gentle breathing sway
+      // Idle: arms hang at sides with a gentle breathing sway, elbows kept
+      // slightly bent rather than snapping back to the dead-straight rest pose
       const breathe = Math.sin(this.walkCycle * 0.6) * 0.04
       this._off('leftArm',  0, 0, -1.15 + breathe)
       this._off('rightArm', 0, 0,  1.15 - breathe)
+      this._off('leftForearm',  0.28, 0, 0)
+      this._off('rightForearm', 0.28, 0, 0)
 
       const slerp = key => { if (b[key] && r[key]) b[key].quaternion.slerp(r[key], 0.12) }
       slerp('leftThigh'); slerp('rightThigh')

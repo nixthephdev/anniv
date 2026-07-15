@@ -19,6 +19,8 @@ import { Roads }          from './Roads.js'
 import { Cars }           from './Cars.js'
 import { Physics }        from './Physics.js'
 import { BoyfriendNPC }  from './BoyfriendNPC.js'
+import { Houses }        from './Houses.js'
+import { Plaza }          from './Plaza.js'
 
 export class World {
   constructor(canvas) {
@@ -153,6 +155,8 @@ export class World {
     this.dog         = new Dog(this.scene, this.terrain)
     this.cars        = new Cars(this.scene)
     this.boyfriendNPC = new BoyfriendNPC(this.scene, this.terrain)
+    this.houses       = new Houses(this.scene)
+    this.plaza        = new Plaza(this.scene)
 
     this._setupAudioFeedback()
     this._setupPostProcessing()
@@ -207,7 +211,7 @@ export class World {
     this.particles.update(elapsed)
     this.memorySpots.update(elapsed, this.player.getPosition())
     this.photoFrames.update(elapsed)
-    this.sky.update(elapsed)
+    this.sky.update(elapsed, this.player.getPosition())
     this.smBuilding.update(elapsed, this.player.getPosition())
     this.cars.update(delta)
     this.boyfriendNPC.update(delta, this.player.getPosition())

@@ -26,6 +26,52 @@ export class Roads {
   _buildDistrictRoads() {
     this.addSegment({ x1: 0, z1: -70, x2: 0,    z2: 150 })   // Avenue
     this.addSegment({ x1: -170, z1: 150, x2: 170, z2: 150 }) // Downtown Loop
+    this._buildBoulevardDressing()
+  }
+
+  // Palm trees + benches along the Avenue's new stretch (north of the
+  // original park content) — this is what makes it read as "the boulevard".
+  _buildBoulevardDressing() {
+    const trunkMat = toon(0x8d6e63)
+    const frondMat = toon(0x43a047)
+    const benchMat = toon(0x8d5a34)
+    const Z1 = 20, Z2 = 140
+
+    for (let z = Z1; z <= Z2; z += 18) {
+      for (const side of [1, -1]) {
+        const x = side * 13   // just past the sidewalk, on the grass
+
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.26, 4.2, 7), trunkMat)
+        trunk.position.set(x, 2.1, z)
+        trunk.rotation.z = side * 0.06
+        trunk.castShadow = true
+        this.scene.add(trunk)
+
+        for (let f = 0; f < 6; f++) {
+          const a = (f / 6) * Math.PI * 2
+          const frond = new THREE.Mesh(new THREE.ConeGeometry(0.35, 2.6, 4), frondMat)
+          frond.position.set(x + Math.cos(a) * 0.5, 4.3, z + Math.sin(a) * 0.5)
+          frond.rotation.set(Math.PI / 2.3, 0, a)
+          this.scene.add(frond)
+        }
+      }
+    }
+
+    for (let z = Z1 + 9; z <= Z2; z += 36) {
+      for (const side of [1, -1]) {
+        const group = new THREE.Group()
+        group.position.set(side * 10, 0, z)
+        group.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2
+
+        const seat = new THREE.Mesh(new THREE.BoxGeometry(2, 0.1, 0.55), benchMat)
+        seat.position.y = 0.48
+        group.add(seat)
+        const back = new THREE.Mesh(new THREE.BoxGeometry(2, 0.55, 0.1), benchMat)
+        back.position.set(0, 0.75, -0.25)
+        group.add(back)
+        this.scene.add(group)
+      }
+    }
   }
 
   // Generic axis-aligned road segment: asphalt + sidewalks + curbs + dashed

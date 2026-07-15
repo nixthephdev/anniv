@@ -33,11 +33,19 @@ export class Sky {
   }
 
   _buildSun() {
+    // Sun disc + halo + light live at a fixed offset from the camera (like a
+    // real distant sun) inside a group we recentre every frame in update() —
+    // otherwise it stays pinned near the origin and goes dark/out of range
+    // once the player wanders far enough away.
+    this._sunOffset = new THREE.Vector3(80, 110, -160)
+    this._sunGroup  = new THREE.Group()
+    this._sunGroup.position.copy(this._sunOffset)
+    this.scene.add(this._sunGroup)
+
     // Sun disc
     const sunMat = new THREE.MeshBasicMaterial({ color: 0xfffde7 })
     this.sun = new THREE.Mesh(new THREE.SphereGeometry(9, 20, 16), sunMat)
-    this.sun.position.set(80, 110, -160)
-    this.scene.add(this.sun)
+    this._sunGroup.add(this.sun)
 
     // Halo layers
     const haloColors = [0xfff9c4, 0xffecb3, 0xffe082]
@@ -47,14 +55,12 @@ export class Sky {
         new THREE.SphereGeometry(haloSizes[i], 14, 10),
         new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.12 - i * 0.03, side: THREE.BackSide })
       )
-      h.position.copy(this.sun.position)
-      this.scene.add(h)
+      this._sunGroup.add(h)
     })
 
     // Sun light
     const sunLight = new THREE.PointLight(0xfff8e1, 1.2, 400)
-    sunLight.position.copy(this.sun.position)
-    this.scene.add(sunLight)
+    this._sunGroup.add(sunLight)
   }
 
   _buildClouds() {
@@ -118,7 +124,20 @@ export class Sky {
     }
   }
 
-  update(elapsed) {
+  update(elapsed, cameraPos) {
+    // Keep the dome and sun centred on the camera — they're fixed-radius
+    // props relative to the viewer, not fixed to world-space origin, so the
+    // player can roam the whole map without exiting the sphere (which would
+    // clip through the far plane and show a black hole) or losing the sun.
+    if (cameraPos) {
+      this.dome.position.set(cameraPos.x, 0, cameraPos.z)
+      this._sunGroup.position.set(
+        cameraPos.x + this._sunOffset.x,
+        this._sunOffset.y,
+        cameraPos.z + this._sunOffset.z
+      )
+    }
+
     // Drift clouds
     this._clouds.forEach(cloud => {
       const a = cloud.userData.initAngle + elapsed * cloud.userData.driftSpeed

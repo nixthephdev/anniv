@@ -48,16 +48,21 @@ export class Physics {
     this.world.createCollider(desc)   // static — no rigid body
   }
 
-  // ── Static building colliders (SM City Legazpi) ─────────────────────────
+  // ── Static building colliders ────────────────────────────────────────────
 
   _buildBuildingColliders() {
-    // Main body (60×14×22 centred at 0,7,-92)
+    // SM City Legazpi: main body (60×14×22 centred at 0,7,-92)
     this._addStaticBox(0, 7, -92, 30, 14, 11)
     // Upper section
     this._addStaticBox(0, 17, -92, 28, 6, 10)
     // Side wings
     this._addStaticBox(-37, 4.5, -92, 7, 9, 10)
     this._addStaticBox( 37, 4.5, -92, 7, 9, 10)
+
+    // Houses (8×4×7 body, matches Houses.js) along the residential street
+    for (const x of [-160, -146, -132, -118, -104, -90, -76, -62]) {
+      this._addStaticBox(x, 2, 188, 4, 4, 3.5)
+    }
   }
 
   _addStaticBox(x, y, z, hw, hh, hd) {
